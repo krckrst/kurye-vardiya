@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>Kurye Vardiyası</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --zemin:#2B2F3A;
+  --panel:#232733;
+  --panel2:#30354280;
+  --yelek:#F2D21B;
+  --mor:#6C5CE7;
+  --kagit:#FFFFFF;
+  --metin:#1D1F27;
+  --acik:#F3F1EA;
+  --soluk:#9AA0AD;
+  --kirmizi:#E5484D;
+  --yesil:#2FA36B;
+  --font:'Baloo 2','Trebuchet MS',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --zemin:#22252E; --panel:#1E212B; } }
+:root[data-theme="dark"]{ --zemin:#22252E; --panel:#1E212B; }
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--zemin);font-family:var(--font);color:var(--acik);-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+button{font-family:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:3px solid var(--yelek);outline-offset:2px}
+#game{position:fixed;inset:0}
+#game canvas{display:block;touch-action:none}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+#hud[hidden]{display:none}
+.top{position:absolute;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 8px);display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--panel);border-radius:14px;padding:6px 12px;box-shadow:0 4px 0 #0003}
+.clock{font-size:26px;font-weight:800;line-height:1;color:var(--yelek);font-variant-numeric:tabular-nums}
+.money{font-size:20px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.money small{display:block;font-size:12px;font-weight:500;color:var(--soluk)}
+.bars{display:grid;gap:4px;min-width:92px}
+.bar{display:grid;grid-template-columns:40px 1fr;align-items:center;gap:6px;font-size:11px;color:var(--soluk)}
+.bar b{display:block;height:7px;border-radius:4px;background:#ffffff1f;overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:var(--yesil);border-radius:4px;transition:width .3s}
+.bar i.dusuk{background:var(--kirmizi)}
+.task{position:absolute;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 66px);background:var(--kagit);color:var(--metin);border-radius:12px;padding:6px 12px;font-size:15px;line-height:1.25;box-shadow:0 3px 0 #0002}
+.task strong{font-weight:700}
+.task .gec{color:var(--kirmizi);font-weight:700}
+.task small{display:block;color:#6b7080;font-size:12px}
+.actions{position:absolute;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);display:flex;gap:8px;pointer-events:auto}
+.actions button{flex:1;border:0;border-radius:12px;padding:10px 6px;font-size:15px;font-weight:700;background:var(--panel);color:var(--acik);box-shadow:0 3px 0 #0005}
+.actions button.ana{background:var(--yelek);color:var(--metin)}
+.actions button:active{transform:translateY(2px);box-shadow:0 1px 0 #0005}
+
+/* ---------- Alt sayfa (seçimler, telefon, liste) ---------- */
+#sheet{position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:20;background:var(--kagit);color:var(--metin);border-radius:18px;padding:14px;box-shadow:0 10px 30px #0006;max-height:calc(100vh - 130px);max-height:calc(100dvh - 130px);overflow:auto;max-width:520px;margin:0 auto}
+#sheet[hidden]{display:none}
+.s-soz{margin:0 0 8px;font-size:15px;line-height:1.3;color:#3b3f4b}
+.s-title{margin:0 0 10px;font-size:17px;font-weight:700;line-height:1.25}
+.opt{display:block;width:100%;text-align:left;border:2px solid var(--metin);background:#fff;color:var(--metin);border-radius:14px;padding:10px 14px;margin-top:8px;font-size:16px;font-weight:600;line-height:1.25;box-shadow:0 3px 0 var(--metin)}
+.opt:first-of-type{margin-top:0}
+.opt.ana{background:var(--yelek)}
+.opt:active{transform:translateY(2px);box-shadow:0 1px 0 var(--metin)}
+.offer{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;margin-bottom:12px}
+.offer .ic{font-size:30px;line-height:1;text-align:center}
+.offer b{display:block;font-size:17px}
+.offer span:not(.etiket){display:block;font-size:14px;color:#555b6a;line-height:1.3}
+.offer .ucret{text-align:right;font-size:24px;font-weight:800;line-height:1}
+.offer .ucret small{display:block;font-size:12px;font-weight:600;color:#555b6a}
+.etiket{display:inline-block;font-size:12px;font-weight:700;border-radius:6px;padding:0 6px;margin:2px 4px 0 0;background:#EEE;color:var(--metin)}
+.etiket.acil{background:var(--kirmizi);color:#fff}
+.etiket.ara{background:#FFE9A8}
+.etiket.dost{background:#EAE6FF;color:#3d2fb3}
+.etiket.bilgi{background:#DDF3E7;color:#1d6b46}
+.prog{height:12px;border-radius:7px;background:#E8E8EC;overflow:hidden;margin-top:6px}
+.prog i{display:block;height:100%;width:0;background:var(--mor);border-radius:7px}
+.prog-lbl{font-size:14px;color:#555b6a;margin-top:6px}
+.phone{text-align:center;padding:4px 0 10px}
+.phone .ic{font-size:34px}
+.phone b{display:block;font-size:19px}
+.phone .durum{color:#555b6a;font-size:14px}
+.phone .soz{display:inline-block;margin-top:10px;background:#F1EFFF;border-radius:14px;padding:8px 12px;font-size:16px;line-height:1.3;max-width:290px}
+.liste-ust{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.liste-ust .s-title{margin:0}
+.kapat{border:0;background:#EEE;border-radius:10px;padding:6px 12px;font-weight:700;font-size:14px}
+.pk{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid #ECECEF}
+.pk .no{font-weight:800;color:#8a8fa0;text-align:center}
+.pk b{display:block;font-size:15px;line-height:1.2}
+.pk .adr{display:block;font-size:14px;color:#3b3f4b;line-height:1.25}
+.pk .btns{display:flex;gap:6px}
+.pk .btns button{border:0;border-radius:10px;padding:7px 10px;font-weight:700;font-size:14px;background:#EEE;color:var(--metin)}
+.pk .btns button.sec{background:var(--yelek)}
+.pk.secili{background:#FFF8D6;border-radius:10px}
+.pk.bitti{opacity:.5}
+.pk .durumu{font-size:13px;font-weight:700;color:#555b6a}
+
+#btnBana{position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 70px);z-index:6;border:2px solid var(--metin);border-radius:999px;padding:8px 16px;font-size:15px;font-weight:700;background:var(--yelek);color:var(--metin);box-shadow:0 3px 0 var(--metin)}
+#btnBana[hidden]{display:none}
+#egitim{position:fixed;inset:0;z-index:35;background:#1D1F27B3;display:flex;align-items:flex-end;padding:0 10px calc(env(safe-area-inset-bottom,0px) + 12px)}
+#egitim[hidden]{display:none}
+.eg-kutu{max-height:calc(100dvh - 24px);overflow-y:auto;background:var(--kagit);color:var(--metin);border-radius:20px;padding:18px 16px 16px;width:100%;max-width:480px;margin:0 auto}
+.eg-b{margin:0 0 10px;font-size:22px;font-weight:800}
+.eg-s{display:grid;grid-template-columns:40px 1fr;gap:10px;align-items:start;margin-bottom:10px}
+.eg-s p{margin:0;font-size:15px;line-height:1.35;color:#3b3f4b}
+.eg-s b{color:var(--metin)}
+.eg-i{font-size:28px;line-height:1.1;text-align:center}
+#egitimTamam{width:100%;margin-top:4px;border:0;border-radius:14px;padding:12px;font-size:18px;font-weight:700;background:var(--yelek);color:var(--metin);box-shadow:0 4px 0 #0004}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 128px);transform:translateX(-50%);z-index:30;background:var(--metin);color:#fff;border-radius:12px;padding:7px 14px;font-size:15px;font-weight:600;max-width:88vw;text-align:center;opacity:0;transition:opacity .25s;pointer-events:none}
+#toast.goster{opacity:1}
+
+/* ---------- Menü ve rapor ---------- */
+.ekran{position:fixed;inset:0;z-index:40;background:var(--zemin);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top,0px) + 20px) 20px calc(env(safe-area-inset-bottom,0px) + 20px)}
+.ekran[hidden]{display:none}
+/* İçerik kısa ekranlarda yukarıdan kesilmesin diye ortalama iç kapta yapılır */
+.ekran-ic{min-height:100%;display:flex;flex-direction:column;justify-content:center;max-width:480px;margin:0 auto}
+.serit{height:6px;background:repeating-linear-gradient(90deg,var(--acik) 0 26px,transparent 26px 46px);opacity:.55;margin:18px 0}
+.baslik{font-size:clamp(44px,13vw,64px);font-weight:800;line-height:.92;color:var(--yelek);margin:0;letter-spacing:-.5px}
+.baslik span{display:block;color:var(--acik)}
+.alt{font-size:18px;color:var(--soluk);margin:0 0 4px;line-height:1.35}
+.secim{display:grid;gap:12px;margin-top:6px}
+.secim button{display:grid;grid-template-columns:64px 1fr;gap:12px;align-items:center;text-align:left;border:0;border-radius:18px;padding:14px 16px;background:var(--acik);color:var(--metin);box-shadow:0 5px 0 #0006}
+.secim button:active{transform:translateY(3px);box-shadow:0 2px 0 #0006}
+.secim .ic{font-size:44px;line-height:1;text-align:center}
+.secim b{display:block;font-size:22px;line-height:1.1}
+.secim span{display:block;font-size:15px;color:#555b6a;line-height:1.3}
+.secim button.onceki{outline:3px solid var(--yelek);outline-offset:3px}
+.ipucu{font-size:14px;color:var(--soluk);margin-top:18px;line-height:1.4}
+.rapor-k{font-size:40px;font-weight:800;color:var(--yelek);margin:0;line-height:1}
+.rapor-g{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.rapor-g div{background:var(--panel);border-radius:14px;padding:10px 12px}
+.rapor-g b{display:block;font-size:24px;line-height:1.1;color:var(--acik)}
+.rapor-g span{font-size:13px;color:var(--soluk)}
+.dostlar{background:var(--panel);border-radius:14px;padding:10px 12px;font-size:15px;line-height:1.6;margin-bottom:12px}
+.puan{background:var(--mor);color:#fff;border-radius:14px;padding:10px 14px;font-size:17px;font-weight:700;margin-bottom:14px}
+.rapor-b{display:grid;gap:10px}
+.rapor-b button{border:0;border-radius:14px;padding:12px;font-size:18px;font-weight:700;background:var(--yelek);color:var(--metin);box-shadow:0 4px 0 #0006}
+.rapor-b button.ikincil{background:var(--acik)}
+/* Kısa ekranlar (uygulama içi WebView: üstte başlık, altta menü) */
+@media (max-height:680px){
+  .baslik{font-size:40px}
+  .serit{margin:10px 0}
+  .alt{font-size:16px}
+  .secim{gap:10px}
+  .secim button{padding:10px 14px;grid-template-columns:48px 1fr}
+  .secim .ic{font-size:34px}
+  .secim b{font-size:19px}
+  .secim span{font-size:14px}
+  .ipucu{margin-top:10px;font-size:13px}
+  .rapor-k{font-size:32px}
+  .rapor-g{gap:8px;margin:10px 0}
+  .rapor-g div{padding:8px 10px}
+  .rapor-g b{font-size:20px}
+  .eg-s{margin-bottom:6px}
+  .eg-s p{font-size:14px}
+  .eg-i{font-size:24px}
+  .clock{font-size:22px}
+  .task{font-size:14px;top:calc(env(safe-area-inset-top,0px) + 58px)}
+  #toast{top:calc(env(safe-area-inset-top,0px) + 112px)}
+}
+/* Dar ekranlar */
+@media (max-width:380px){
+  .actions{gap:6px}
+  .actions button{font-size:13px;padding:9px 2px}
+  .top{gap:6px;padding:6px 10px}
+  .bars{min-width:80px}
+  .bar{grid-template-columns:36px 1fr}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<div id="game"></div>
+
+<div id="hud" hidden>
+  <div class="top">
+    <div class="clock" id="clock">09:00</div>
+    <div class="money" id="money">₺0<small>bugünkü kazanç</small></div>
+    <div class="bars">
+      <div class="bar">Yakıt<b><i id="fuelBar"></i></b></div>
+      <div class="bar">Enerji<b><i id="enBar"></i></b></div>
+    </div>
+  </div>
+  <div class="task" id="task"></div>
+  <div class="actions">
+    <button id="btnMap">Harita</button>
+    <button id="btnNav">Navigasyon</button>
+    <button id="btnList" class="ana" hidden>Paketler</button>
+    <button id="btnCall" hidden>Ara</button>
+  </div>
+  <button id="btnBana" hidden>Bana dön</button>
+</div>
+
+<div id="sheet" hidden></div>
+<div id="toast" role="status"></div>
+
+<section class="ekran" id="menu"><div class="ekran-ic">
+  <h1 class="baslik">Kurye<span>Vardiyası</span></h1>
+  <div class="serit"></div>
+  <p class="alt">Bugün hangi işi yapıyorsun?</p>
+  <div class="secim">
+    <button data-mod="motor"><div class="ic">🛵</div><div><b>Motorlu kurye</b><span>Yemek, market, kafe ve eczane siparişleri. Hızlı ve sıcak teslim.</span></div></button>
+    <button data-mod="arac"><div class="ic">🚐</div><div><b>Araçlı kurye</b><span>Aktarma merkezinden 20 paketle çık, adresleri bul, dağıt.</span></div></button>
+  </div>
+  <p class="ipucu">Gitmek istediğin yere dokun, aracın oraya gider. Haritayı parmağınla kaydırıp etrafa bakabilirsin.</p>
+</div></section>
+
+<section class="ekran" id="report" hidden></section>
+
+<section id="egitim" hidden>
+  <div class="eg-kutu">
+    <p class="eg-b">Nasıl oynanır?</p>
+    <div class="eg-s"><span class="eg-i">👆</span><p><b>Gitmek istediğin yere dokun.</b> Bir eve, dükkâna ya da yola dokunduğunda aracın oraya kendisi gider.</p></div>
+    <div class="eg-s"><span class="eg-i">✋</span><p><b>Parmağını kaydırarak etrafa bak.</b> Adres ararken haritayı sürükle; “Bana dön” seni aracına geri getirir.</p></div>
+    <div class="eg-s"><span class="eg-i">🏠</span><p><b>Numaralar kapının yanında.</b> Sokak adları yolun üstünde yazar. Bütün mahalleyi görmek için “Harita”ya bas.</p></div>
+    <div class="eg-s"><span class="eg-i">💬</span><p><b>Kapıya varınca konuşma başlar.</b> Alttan cevabını seç; nasıl konuştuğun bahşişi etkiler.</p></div>
+    <button id="egitimTamam">Anladım, başlayalım</button>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+<script>
+/* =========================================================
+   KURYE VARDİYASI 2 — prototip
+   Şehir ızgarası, motor/araç modu, NPC kuryeler, konuşma balonları
+   ========================================================= */
+const F = "'Baloo 2','Trebuchet MS',sans-serif";
+const T = 40, COLS = 21, ROWS = 31, WW = COLS * T, WH = ROWS * T;
+const HS = ['Lale Sk.', 'Menekşe Sk.', 'Gül Sk.', 'Papatya Sk.', 'Nergis Sk.', 'Karanfil Sk.', 'Zambak Sk.'];
+const VS = ['Atatürk Cd.', 'Bağdat Cd.', 'Barbaros Cd.', 'Cumhuriyet Cd.', 'Sahil Cd.'];
+const PAKET_SAYISI = 20;
+// Üstteki saat/görev kutusu ve alttaki butonlar haritanın kenarını örtmesin diye
+// kamera haritanın biraz dışına da kayabilir (Lale Sk. ve Zambak Sk. görünür kalır)
+const UST_BOSLUK = 150, ALT_BOSLUK = 90;
+const LITRE = 93;
+
+const rnd = Math.random, ri = n => Math.floor(rnd() * n), pick = a => a[ri(a.length)];
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const key = (c, r) => c + ',' + r;
+const merkez = (c, r) => ({ x: c * T + T / 2, y: r * T + T / 2 });
+const isRoad = (c, r) => c >= 0 && r >= 0 && c < COLS && r < ROWS && (r % 5 === 0 || c % 5 === 0);
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+const fmt = m => { m = Math.floor(m); return String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+const $ = id => document.getElementById(id);
+
+/* ---------------- Şehir ---------------- */
+const BLOK_OZEL = { '1,1': 'site', '2,3': 'istasyon', '0,5': 'aktarma' };
+const PARSEL_OZEL = {
+  '0,1,0': { ad: 'Lezzet Dürüm', tip: 'restoran', ikon: '🌯' },
+  '2,0,1': { ad: 'Burger Durağı', tip: 'restoran', ikon: '🍔' },
+  '2,5,2': { ad: 'Pide Salonu', tip: 'restoran', ikon: '🍕' },
+  '3,3,0': { ad: 'Köfte Evi', tip: 'restoran', ikon: '🍖' },
+  '2,2,0': { ad: 'Mahalle Market', tip: 'market', ikon: '🛒' },
+  '0,3,3': { ad: 'Taze Market', tip: 'market', ikon: '🛒' },
+  '1,3,3': { ad: 'Köşe Kahve', tip: 'kafe', ikon: '☕' },
+  '3,4,2': { ad: 'Simit Fırını', tip: 'kafe', ikon: '🥯' },
+  '1,4,1': { ad: 'Şifa Eczanesi', tip: 'eczane', ikon: '💊' },
+  '3,1,3': { ad: 'Hayat Eczanesi', tip: 'eczane', ikon: '💊' },
+  '0,3,1': { ad: 'Çay Ocağı', tip: 'cay', ikon: '🫖' },
+  '3,0,0': { ad: 'Usta Motor Servis', tip: 'servis', ikon: '🔧' }
+};
+const TANIDIK_PARSEL = { '0,2,2': 'nermin', '3,2,1': 'hasan', '1,2,0': 'selin', '2,4,3': 'murat', '3,5,1': 'ece' };
+
+const lots = [], places = {}, doorMap = {}, tileOwner = {}, shops = [];
+(function sehirKur() {
+  for (let br = 0; br < 6; br++) for (let bc = 0; bc < 4; bc++) {
+    const c0 = bc * 5, r0 = br * 5, oz = BLOK_OZEL[bc + ',' + br];
+    if (oz) {
+      const p = { kind: oz, c0, r0, door: { c: c0 + 1, r: r0 }, x: (c0 + 1) * T, y: (r0 + 1) * T, w: 4 * T, h: 4 * T };
+      p.anchor = { x: (c0 + 1) * T + T / 2, y: (r0 + 1) * T + 16 };
+      places[oz] = p; doorMap[key(p.door.c, p.door.r)] = { place: p };
+      for (let c = c0 + 1; c <= c0 + 4; c++) for (let r = r0 + 1; r <= r0 + 4; r++) tileOwner[key(c, r)] = { place: p };
+      continue;
+    }
+    const defs = [
+      [c0 + 1, r0 + 1, c0 + 1, r0, br, 'tek'],
+      [c0 + 3, r0 + 1, c0 + 3, r0, br, 'tek'],
+      [c0 + 1, r0 + 3, c0 + 2, r0 + 5, br + 1, 'cift'],
+      [c0 + 3, r0 + 3, c0 + 4, r0 + 5, br + 1, 'cift']
+    ];
+    defs.forEach((d, idx) => {
+      const id = bc + ',' + br + ',' + idx;
+      const L = { id, bc, br, idx, c: d[0], r: d[1], door: { c: d[2], r: d[3] }, s: d[4], street: HS[d[4]], side: d[5],
+        x: d[0] * T, y: d[1] * T, special: PARSEL_OZEL[id] || null, tanidik: TANIDIK_PARSEL[id] || null };
+      L.anchor = { x: L.x + T, y: L.y + T * 0.75 };
+      lots.push(L); doorMap[key(L.door.c, L.door.r)] = { lot: L };
+      for (let c = L.c; c < L.c + 2; c++) for (let r = L.r; r < L.r + 2; r++) tileOwner[key(c, r)] = { lot: L };
+      if (L.special && ['restoran', 'market', 'kafe', 'eczane'].includes(L.special.tip)) shops.push(L);
+      if (L.special && L.special.tip === 'cay') places.cay = L;
+      if (L.special && L.special.tip === 'servis') places.servis = L;
+    });
+  }
+  // Numaralandırma: sokak sokak, soldan sağa; alt taraf tek, üst taraf çift
+  for (let s = 0; s < HS.length; s++) {
+    ['tek', 'cift'].forEach(side => {
+      lots.filter(l => l.s === s && l.side === side).sort((a, b) => a.c - b.c)
+        .forEach((l, i) => { l.no = side === 'tek' ? i * 2 + 1 : i * 2 + 2; });
+    });
+  }
+  lots.forEach(l => { l.adres = l.street + ' No:' + l.no; });
+})();
+const residential = lots.filter(l => !l.special && !l.tanidik);
+const lotByTanidik = id => lots.find(l => l.tanidik === id);
+
+function bfs(from, to) {
+  if (!isRoad(to.c, to.r)) return null;
+  const start = key(from.c, from.r), goal = key(to.c, to.r);
+  if (start === goal) return [];
+  const prev = { [start]: null }, q = [from];
+  while (q.length) {
+    const cur = q.shift();
+    for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const n = { c: cur.c + dc, r: cur.r + dr }, k = key(n.c, n.r);
+      if (!isRoad(n.c, n.r) || k in prev) continue;
+      prev[k] = cur;
+      if (k === goal) {
+        const path = [n]; let p = cur;
+        while (p && key(p.c, p.r) !== start) { path.unshift(p); p = prev[key(p.c, p.r)]; }
+        return path;
+      }
+      q.push(n);
+    }
+  }
+  return null;
+}
+const tileOf = e => ({ c: Math.max(0, Math.min(COLS - 1, Math.round(e.x / T - 0.5))), r: Math.max(0, Math.min(ROWS - 1, Math.round(e.y / T - 0.5))) });
+
+/* ---------------- Karakterler ve konuşmalar ---------------- */
+const TANIDIKLAR = {
+  nermin: { ad: 'Nermin Teyze', c: 'K', sahneler: [
+    { say: 'Ay evladım geldin mi? Gel bir çay iç de öyle git.', opts: [
+      { t: 'Sağ olun teyzeciğim, acelem var.', reply: 'Tamam kuzum, dikkatli sür.', tip: 5, dost: 1 },
+      { t: 'Bir yudum içeyim bari.', reply: 'Oh, otur şöyle. Annen nasıl?', tip: 15, dost: 2, min: 4 }] },
+    { say: 'Yine sen mi geldin? Seni görünce içim açılıyor.', opts: [
+      { t: 'Ben de sizi görünce teyze!', reply: 'Al şu kurabiyeyi, yolda yersin.', tip: 10, dost: 2 },
+      { t: 'İyi günler teyze.', reply: 'Hayırlı işler.', tip: 4, dost: 0 }] }] },
+  hasan: { ad: 'Hasan Amca', c: 'E', sahneler: [
+    { say: 'Gözlüğümü bulamadım, kutunun üstünde ne yazıyor okur musun?', opts: [
+      { t: 'Tabii amca: sabah bir, akşam bir.', reply: 'Allah razı olsun evladım.', tip: 15, dost: 2, min: 2 },
+      { t: 'Eczaneyi arayın amca, acelem var.', reply: 'Hmm... peki.', tip: 0, dost: -1 }] },
+    { say: 'Aferin evladım, tam bitmişti. Bugün yine yoruldun mu?', opts: [
+      { t: 'Saatinde almayı unutmayın amca.', reply: 'Sen de doktor gibi oldun ha! Sağ ol.', tip: 10, dost: 2 },
+      { t: 'Geçmiş olsun amca.', reply: 'Eyvallah.', tip: 5, dost: 1 }] }] },
+  selin: { ad: 'Selin', c: 'K', sahneler: [
+    { say: 'Benim mi? Finaller yaklaştı, bu hayat kurtarır.', opts: [
+      { t: 'Kolay gelsin, başarılar!', reply: 'Sağ ol! Bitirince kahvesi benden.', tip: 6, dost: 1 },
+      { t: 'Hangi bölümdesin?', reply: 'İnşaat mühendisliği. Köprü yapacağım!', tip: 8, dost: 2, min: 1 }] },
+    { say: 'Yine gece çalışıyorum, iyi ki geldin.', opts: [
+      { t: 'Sıcacık getirdim, buyur.', reply: 'Hayat kurtardın!', tip: 10, dost: 2 },
+      { t: 'Afiyet olsun.', reply: 'Teşekkürler!', tip: 5, dost: 1 }] }] },
+  murat: { ad: 'Murat Bey', c: 'E', sahneler: [
+    { say: 'Yine paket... Eşime söyleme ama!', opts: [
+      { t: 'Sır bende abi.', reply: 'Ha ha, sağ ol be!', tip: 12, dost: 2 },
+      { t: 'İmzanızı alayım.', reply: 'Buyur.', tip: 3, dost: 0 }] },
+    { say: 'Bugün ikinci gelişin mi? Kusura bakma, hep sipariş veriyorum.', opts: [
+      { t: 'Ekmek kapımız abi!', reply: 'Haklısın, kolay gelsin.', tip: 8, dost: 1 },
+      { t: 'Sorun değil.', reply: 'Sağ ol.', tip: 4, dost: 0 }] }] },
+  ece: { ad: 'Doktor Ece', c: 'K', sahneler: [
+    { say: 'Nöbetten yeni çıktım, iyi ki geldin.', opts: [
+      { t: 'Kolay gelsin hocam, dinlenin.', reply: 'Sağ ol. Sen de kaskı ihmal etme!', tip: 8, dost: 1 },
+      { t: 'Uykunuzu bölmeyeyim, hızlıca bırakıyorum.', reply: 'Çok düşüncelisin.', tip: 12, dost: 2 }] }] }
+};
+const GENEL = {
+  motor: [
+    { say: 'Geldin mi! Çok acıkmıştım.', opts: [
+      { t: 'Afiyet olsun, sıcacık getirdim!', reply: 'Eline sağlık, bu da senin.', tip: 15 },
+      { t: 'İyi günler.', reply: 'Sağ ol.', tip: 5 }] },
+    { say: 'Yağmur var mı dışarıda? Paket ıslanmadı değil mi?', opts: [
+      { t: 'Çiseliyor ama paket kupkuru.', reply: 'Harikasın, bahşişini bırakıyorum.', tip: 12 },
+      { t: 'Biraz yağıyor.', reply: 'Kolay gelsin.', tip: 4 }] },
+    { say: 'Sosları koymuşlar mı?', opts: [
+      { t: 'Kontrol ettim, iki sos var.', reply: 'Süpersin!', tip: 10 },
+      { t: 'Bilmiyorum, restorana sorun.', reply: 'Hmm, peki.', tip: 0 }] },
+    { say: 'Kapıda kartla ödeyecektim.', opts: [
+      { t: 'Tabii {h}, cihaz yanımda.', reply: 'Tamamdır. Sağ ol.', tip: 6 },
+      { t: 'Uygulamadan ödenmiş görünüyor, rahat olun.', reply: 'Aa doğru ya, sağ ol!', tip: 8 }] }],
+  eczane: [
+    { say: 'İlaç bu mu? Raporlu olan değil mi?', opts: [
+      { t: 'Eczacı reçetenizi kontrol etti {h}, buyurun.', reply: 'Çok teşekkürler.', tip: 8 },
+      { t: 'Bilmiyorum, eczaneye sorun.', reply: 'Peki...', tip: 0 }] },
+    { say: 'Çok hızlı geldin, annem bekliyordu.', opts: [
+      { t: 'Geçmiş olsun, acil deyince bastım geldim.', reply: 'Allah razı olsun.', tip: 15 },
+      { t: 'Rica ederim.', reply: 'Sağ ol.', tip: 5 }] }],
+  arac: [
+    { say: 'Kargo mu? Hiç beklemiyordum!', opts: [
+      { t: 'Adınıza gelmiş, imzanızı alayım.', reply: 'Tabii, buyur.', tip: 3 },
+      { t: 'Sürpriz olabilir!', reply: 'Ha ha, bakalım. Sağ ol.', tip: 5 }] },
+    { say: 'Nihayet! Üç gündür bekliyorum.', opts: [
+      { t: 'Bugün ilk sizi getirdim {h}.', reply: 'Ha ha, sağ ol!', tip: 5 },
+      { t: 'Aktarmada beklemiş, kusura bakmayın.', reply: 'Olsun, geldi ya.', tip: 3 }] },
+    { say: 'Ağır mı bu? Kapının içine koyar mısın?', opts: [
+      { t: 'Tabii {h}, buraya bırakıyorum.', reply: 'Çok naziksin.', tip: 8 },
+      { t: 'Kapıya kadar teslim ediyoruz {h}.', reply: 'Peki, tamam.', tip: 0 }] }]
+};
+const GEC_SAHNE = { say: 'Biraz geç kaldın ama...', opts: [
+  { t: 'Haklısınız, yol çalışması vardı, kusura bakmayın.', reply: 'Olur öyle, sağ ol.', tip: 3 },
+  { t: 'Trafik çok kötüydü.', reply: 'Hmm.', tip: 0 }] };
+const ALIS = {
+  restoran: ['Sipariş birazdan hazır, bir dakika.', 'Ocakta, az bekle.', 'Bugün çok yoğunuz, kusura bakma.'],
+  market: ['Poşetler hazır. Kurye Club’lılara kendi alışverişinde %10 indirim var bu arada.', 'Ekmeği de ekledim, kontrol et.'],
+  kafe: ['Kahveler köpüklü, dökmeden götür!', 'Kapakları sıkıca kapattım.'],
+  eczane: ['Reçeteli ilaç, acil. Hasta bekliyor.', 'Soğuk zincir ilaç var, hızlı götürmen lazım.']
+};
+const NPC_YOL = ['Gül Sokak’ta yol çalışması var, dikkat!', 'Yağmur başlayacakmış, yağmurluğu unutma.', 'Bugün bahşişler iyi gidiyor.',
+  'Bağdat Cd.’de hız kontrolü var, yavaş!', 'Sitede güvenlik Kurye Kartı’nı okutuyor, hızlı geçiyorsun.', 'Acil işe hazırım’ı açtım, bakalım.',
+  'Lastik havamı kontrol ettirdim, servis %15 indirimli.', 'Çay ocağında kimler var acaba?'];
+const SELAM = ['Kolay gelsin!', 'Selam, hayırlı işler!', 'Bugün nasıl gidiyor?', 'Yavaş git, sokaklar kaygan.', 'Kolay gelsin, bahşişler bol olsun!'];
+const CEVAP = ['Sana da kolay gelsin {h}!', 'Eyvallah {h}!', 'İyi gidiyor, sağ ol {h}!', 'Dikkat et sen de {h}!'];
+const NPC_IKILI = [
+  ['Çay ocağına geliyor musun?', 'Şu paketi bırakayım, geliyorum!'],
+  ['Bugün kaç paket attın {h}?', 'On iki, daha yarı yoldayım.'],
+  ['Yakıt anlaşmasını yaptın mı?', 'Yaptım, istasyonda %4 düşüyor.'],
+  ['Navigasyon beni yine yanlış sokağa soktu.', 'Numaralara bak {h}, alt taraf tek gidiyor.'],
+  ['Lastiğim patladı sandım, korktum.', 'Servise uğra {h}, %15 indirim var.']
+];
+const CAY_SOHBET = [
+  [['K', 'İstasyonda Kurye Club anlaşmasıyla %4 indirim alıyorum, ayda epey tutuyor.'], ['R', 'Ben de uygulamadan başvurdum, iki dakika sürdü.']],
+  [['K', 'Sitede güvenlik eskiden kaskı çıkar diyordu.'], ['R', 'Kurye Kartı’nı okutuyorsun, fotoğrafın çıkıyor, geçiyorsun.']],
+  [['K', 'Dün gece acil kurye ilanı düştü, bir saatte işe başladım.'], ['R', 'Acil işe hazırım’ı açık tutacaksın, bölgene düşüyor.']],
+  [['R', 'Kargocu arkadaşlar önce arıyor, boşa kapı çalmıyorlar.'], ['K', 'Evet, yarım saat kazandırıyor.']],
+  [['R', 'Uygulamadaki oyunda haftalık sıralama var.'], ['K', 'Ben şehirde ilk 50’deyim, haberin olsun!']]
+];
+// c: 'E' erkek, 'K' kadın. Hitap buna göre: abi / abla
+const ISIMLER = [['Ayşe K.', 'K'], ['Mehmet D.', 'E'], ['Zeynep A.', 'K'], ['Burak Ç.', 'E'], ['Elif Ş.', 'K'], ['Can Y.', 'E'], ['Merve A.', 'K'],
+  ['Emre K.', 'E'], ['Derya Ö.', 'K'], ['Gizem P.', 'K'], ['Okan K.', 'E'], ['Seda Y.', 'K'], ['Kemal T.', 'E'], ['Büşra E.', 'K']];
+const rastgeleMusteri = () => { const [ad, c] = pick(ISIMLER); return { ad, c }; };
+const hitap = kisi => (kisi && kisi.c === 'K') ? 'abla' : 'abi';
+const doldur = (metin, kisi) => metin.replace(/\{h\}/g, hitap(kisi));
+const KOMSULAR = ['Ayten Hanım', 'Cemil Bey', 'Fatma Abla', 'Nuri Amca'];
+const NPC_LISTE = [
+  { ad: 'Mehmet', c: 'E', tip: 'motor', renk: 0xE5484D }, { ad: 'Emre', c: 'E', tip: 'motor', renk: 0x2FA36B }, { ad: 'Serkan', c: 'E', tip: 'arac', renk: 0xFFFFFF },
+  { ad: 'Yusuf', c: 'E', tip: 'motor', renk: 0x3B82F6 }, { ad: 'Hakan', c: 'E', tip: 'arac', renk: 0xCBD5E1 }, { ad: 'Tuba', c: 'K', tip: 'motor', renk: 0xF08C00 },
+  { ad: 'Gülay', c: 'K', tip: 'arac', renk: 0xF5E1A4 }
+];
+
+/* ---------------- Durum ---------------- */
+const G = { scene: null, ready: false, running: false, paused: false, busy: false, npcs: [], balloons: [], dost: {} };
+try { G.dost = JSON.parse(localStorage.getItem('kv2-dost') || '{}'); } catch (e) { G.dost = {}; }
+try { G.oncekiMod = localStorage.getItem('kv2-mod'); } catch (e) {}
+
+/* ---------------- Phaser sahnesi ---------------- */
+class Sehir extends Phaser.Scene {
+  constructor() { super('sehir'); }
+  create() {
+    G.scene = this;
+    sehirCiz(this);
+    this.cameras.main.setBounds(0, -UST_BOSLUK, WW, WH + UST_BOSLUK + ALT_BOSLUK).setBackgroundColor('#93B474');
+    this.cameras.main.centerOn(WW / 2, WH / 2);
+    G.flag = this.add.graphics().setDepth(12).setVisible(false);
+    G.flag.fillStyle(0x1D1F27, 1).fillRect(-1, -22, 3, 22).fillStyle(0xF2D21B, 1).fillTriangle(2, -22, 16, -16, 2, -10);
+    G.navG = this.add.graphics().setDepth(11);
+    G.halka = this.add.graphics().setDepth(13);
+    this.input.on('pointerdown', p => { const cam = this.cameras.main; G.surukle = { x: p.x, y: p.y, sx: cam.scrollX, sy: cam.scrollY, kaydi: false }; });
+    this.input.on('pointermove', p => {
+      const d = G.surukle; if (!p.isDown || !d || !G.running || G.mapMode) return;
+      const dx = p.x - d.x, dy = p.y - d.y;
+      if (!d.kaydi && Math.hypot(dx, dy) < 12) return;
+      const cam = this.cameras.main;
+      if (!d.kaydi) { d.kaydi = true; cam.stopFollow(); G.serbest = true; $('btnBana').hidden = false; }
+      cam.setScroll(d.sx - dx / cam.zoom, d.sy - dy / cam.zoom);
+    });
+    this.input.on('pointerup', p => { const d = G.surukle; G.surukle = null; if (d && d.kaydi) return; dokunma(p); });
+    G.ready = true;
+    const m = new URLSearchParams(location.search).get('mod');
+    if (m === 'motor' || m === 'arac') basla(m);
+  }
+  update(t, d) { tick(Math.min(d, 60) / 1000); }
+}
+
+function sehirCiz(s) {
+  const g = s.add.graphics().setDepth(0);
+  g.fillStyle(0x93B474, 1).fillRect(0, 0, WW, WH);
+  g.fillStyle(0x3B404C, 1);
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (isRoad(c, r)) g.fillRect(c * T, r * T, T, T);
+  g.fillStyle(0xE9E4D4, 0.5);
+  for (let r = 0; r < ROWS; r += 5) for (let c = 0; c < COLS; c++) if (c % 5) g.fillRect(c * T + 9, r * T + T / 2 - 1, T - 18, 2);
+  for (let c = 0; c < COLS; c += 5) for (let r = 0; r < ROWS; r++) if (r % 5) g.fillRect(c * T + T / 2 - 1, r * T + 9, 2, T - 18);
+  // kaldırımlar
+  for (let br = 0; br < 6; br++) for (let bc = 0; bc < 4; bc++) g.fillStyle(0xD3CCBC, 1).fillRect((bc * 5 + 1) * T, (br * 5 + 1) * T, 4 * T, 4 * T);
+  const cati = [0xD9826A, 0xE3B887, 0xB8C6D9, 0xC7A8C9, 0xA9C69F, 0xE7D3A3, 0x9FB8B0];
+  const tabela = { restoran: 0xF08C00, market: 0x2FA36B, kafe: 0x8B5A3C, eczane: 0xE5484D, cay: 0x8B5A3C, servis: 0x4A5568 };
+  lots.forEach((l, i) => {
+    const x = l.x + 4, y = l.y + 4, w = 2 * T - 8, h = 2 * T - 8;
+    const kapiX = l.door.c * T + T / 2;
+    if (l.special) {
+      g.fillStyle(0xF4F1EC, 1).fillRoundedRect(x, y, w, h, 5);
+      const tc = tabela[l.special.tip];
+      const ay = l.side === 'tek' ? y : y + h - 10;
+      for (let k = 0; k < 6; k++) g.fillStyle(k % 2 ? 0xFFFFFF : tc, 1).fillRect(x + k * (w / 6), ay, w / 6, 10);
+      const tek = l.side === 'tek';
+      s.add.text(l.x + T, tek ? l.y + T - 2 : l.y + T + 8, l.special.ikon, { fontSize: '24px', resolution: 2 }).setOrigin(0.5).setDepth(3);
+      s.add.text(l.x + T, tek ? l.y + T + 20 : l.y + 20, l.special.ad, { fontFamily: F, fontSize: '11px', fontStyle: '700', color: '#1D1F27', align: 'center', wordWrap: { width: 2 * T - 10 }, resolution: 2, lineSpacing: -4 }).setOrigin(0.5, 0.5).setDepth(3);
+      if (l.special.tip === 'cay') {
+        g.fillStyle(0x8B5A3C, 1).fillCircle(l.x + T, l.y + T + 2, 7);
+        places.cay.kAnchor = { x: l.x + T - 20, y: l.y + T + 2 };
+        places.cay.rAnchor = { x: l.x + T + 20, y: l.y + T + 2 };
+      }
+    } else {
+      g.fillStyle(cati[(l.c * 7 + l.r * 3 + i) % cati.length], 1).fillRoundedRect(x, y, w, h, 4);
+      g.fillStyle(0x000000, 0.1).fillRect(x, y + h / 2 - 1, w, 3);
+      g.fillStyle(0xFFFFFF, 0.25).fillRect(x + 6, y + 6, 10, 8).fillRect(x + w - 16, y + 6, 10, 8);
+    }
+    const kapiY = l.side === 'tek' ? l.y + 2 : l.y + 2 * T - 7;
+    g.fillStyle(0x5A4636, 1).fillRect(kapiX - 6, kapiY, 12, 5);
+    const ny = l.side === 'tek' ? l.y + 15 : l.y + 2 * T - 15;
+    s.add.text(kapiX, ny, String(l.no), { fontFamily: F, fontSize: '12px', fontStyle: '800', color: '#1D1F27', backgroundColor: '#FFFFFFDD', padding: { x: 3, y: 0 }, resolution: 2 }).setOrigin(0.5).setDepth(4);
+  });
+  // Site
+  const st = places.site;
+  g.fillStyle(0xA9C98A, 1).fillRect(st.x + 3, st.y + 3, st.w - 6, st.h - 6);
+  g.lineStyle(4, 0x5E7F45, 1).strokeRect(st.x + 3, st.y + 3, st.w - 6, st.h - 6);
+  ['A', 'B', 'C', 'D'].forEach((b, i) => {
+    const bx = st.x + 26 + (i % 2) * 74, by = st.y + 46 + Math.floor(i / 2) * 64;
+    g.fillStyle(0xB8C6D9, 1).fillRoundedRect(bx, by, 54, 42, 4);
+    s.add.text(bx + 27, by + 21, b + ' Blok', { fontFamily: F, fontSize: '11px', fontStyle: '700', color: '#1D1F27', resolution: 2 }).setOrigin(0.5).setDepth(3);
+  });
+  g.fillStyle(0xF4F1EC, 1).fillRect(st.x + 4, st.y + 4, 30, 18);
+  g.fillStyle(0xE5484D, 1).fillRect(st.x + 34, st.y + 10, 30, 4);
+  s.add.text(st.x + st.w / 2 + 14, st.y + 16, 'Yeşil Vadi Sitesi', { fontFamily: F, fontSize: '12px', fontStyle: '800', color: '#1D1F27', resolution: 2 }).setOrigin(0.5).setDepth(3);
+  // İstasyon
+  const is = places.istasyon;
+  g.fillStyle(0xC9CCD2, 1).fillRect(is.x + 3, is.y + 3, is.w - 6, is.h - 6);
+  g.fillStyle(0xFFFFFF, 1).fillRoundedRect(is.x + 20, is.y + 40, is.w - 40, 70, 6);
+  g.fillStyle(0x6C5CE7, 1).fillRect(is.x + 20, is.y + 40, is.w - 40, 8);
+  for (let k = 0; k < 3; k++) g.fillStyle(0x4A5568, 1).fillRect(is.x + 40 + k * 40, is.y + 66, 12, 26);
+  s.add.text(is.x + is.w / 2, is.y + 132, '⛽ Anlaşmalı İstasyon', { fontFamily: F, fontSize: '13px', fontStyle: '800', color: '#1D1F27', resolution: 2 }).setOrigin(0.5).setDepth(3);
+  // Aktarma merkezi
+  const ak = places.aktarma;
+  g.fillStyle(0xB7BDC8, 1).fillRect(ak.x + 3, ak.y + 3, ak.w - 6, ak.h - 6);
+  g.fillStyle(0x8C96A8, 1).fillRoundedRect(ak.x + 14, ak.y + 34, ak.w - 28, 80, 6);
+  for (let k = 0; k < 5; k++) g.fillStyle(0x5B6475, 1).fillRect(ak.x + 22 + k * 25, ak.y + 108, 18, 8);
+  g.fillStyle(0xFFFFFF, 1).fillRoundedRect(ak.x + 20, ak.y + 126, 36, 20, 3).fillRoundedRect(ak.x + 66, ak.y + 126, 36, 20, 3);
+  s.add.text(ak.x + ak.w / 2, ak.y + 74, '📦 Kargo Aktarma\nMerkezi', { fontFamily: F, fontSize: '13px', fontStyle: '800', color: '#FFFFFF', align: 'center', resolution: 2, lineSpacing: -4 }).setOrigin(0.5).setDepth(3);
+  // Sokak adları
+  for (let s2 = 0; s2 < HS.length; s2++) for (let bc = 0; bc < 4; bc++)
+    s.add.text((bc * 5 + 3) * T, s2 * 5 * T + T / 2, HS[s2], { fontFamily: F, fontSize: '11px', fontStyle: '600', color: '#E9E4D4', backgroundColor: '#3B404C', padding: { x: 3, y: 0 }, resolution: 2 }).setOrigin(0.5).setDepth(2);
+  for (let v = 0; v < VS.length; v++) for (let br = 0; br < 6; br++)
+    s.add.text(v * 5 * T + T / 2, (br * 5 + 3) * T, VS[v], { fontFamily: F, fontSize: '11px', fontStyle: '600', color: '#E9E4D4', backgroundColor: '#3B404C', padding: { x: 3, y: 0 }, resolution: 2 }).setOrigin(0.5).setAngle(-90).setDepth(2);
+}
+
+/* ---------------- Araçlar ---------------- */
+function arac(s, tip, renk, ad, oyuncu) {
+  const body = s.add.container(0, 0).setDepth(oyuncu ? 30 : 20);
+  const g = s.add.graphics();
+  if (tip === 'motor') {
+    g.fillStyle(0x000000, 0.25).fillEllipse(1, 3, 30, 14);
+    g.fillStyle(0x23262F, 1).fillRoundedRect(-11, -4, 24, 8, 3);
+    g.fillStyle(oyuncu ? 0xF2D21B : renk, 1).fillRoundedRect(-15, -8, 12, 16, 2);
+    g.fillStyle(oyuncu ? 0x6C5CE7 : 0xFFFFFF, 1).fillCircle(4, 0, 5.5);
+    g.fillStyle(0x111111, 1).fillRect(11, -5, 2, 10);
+  } else {
+    g.fillStyle(0x000000, 0.25).fillEllipse(1, 4, 44, 26);
+    g.fillStyle(oyuncu ? 0xFFFFFF : renk, 1).fillRoundedRect(-19, -11, 38, 22, 4);
+    g.fillStyle(0x2B3A4A, 1).fillRect(10, -9, 6, 18);
+    g.fillStyle(oyuncu ? 0xF2D21B : 0x9AA0AD, 1).fillRect(-17, -3, 25, 6);
+  }
+  body.add(g);
+  if (oyuncu) {
+    const halka = s.add.graphics().setDepth(29);
+    halka.lineStyle(3, 0xF2D21B, 0.9).strokeCircle(0, 0, tip === 'motor' ? 20 : 26);
+    s.tweens.add({ targets: halka, alpha: 0.2, duration: 800, yoyo: true, repeat: -1 });
+    body.halka = halka;
+  }
+  const label = s.add.text(0, 0, ad, { fontFamily: F, fontSize: '11px', fontStyle: '700', color: oyuncu ? '#1D1F27' : '#FFFFFF', backgroundColor: oyuncu ? '#F2D21B' : '#1D1F27C0', padding: { x: 4, y: 0 }, resolution: 2 }).setOrigin(0.5, 0).setDepth(26);
+  return { body, label, x: 0, y: 0, angle: 0, path: [], moved: 0, tip, ad };
+}
+function yerlestir(e, c, r) { const p = merkez(c, r); e.x = p.x; e.y = p.y; ciz(e); }
+function ciz(e) {
+  e.body.setPosition(e.x, e.y).setRotation(e.angle);
+  if (e.body.halka) e.body.halka.setPosition(e.x, e.y);
+  e.label.setPosition(e.x, e.y + (e.tip === 'motor' ? 12 : 16));
+}
+function ilerle(e, dt, hiz) {
+  if (!e.path.length) return 'dur';
+  let adim = hiz * dt;
+  while (adim > 0 && e.path.length) {
+    const h = merkez(e.path[0].c, e.path[0].r), dx = h.x - e.x, dy = h.y - e.y, d = Math.hypot(dx, dy);
+    if (d > 0.01) e.angle = Math.atan2(dy, dx);
+    if (d <= adim) { e.x = h.x; e.y = h.y; e.path.shift(); e.moved += d; adim -= d; }
+    else { e.x += dx / d * adim; e.y += dy / d * adim; e.moved += adim; adim = 0; }
+  }
+  ciz(e);
+  return e.path.length ? 'gidiyor' : 'vardi';
+}
+function yokEt(e) { e.body.halka && e.body.halka.destroy(); e.body.destroy(); e.label.destroy(); }
+
+/* ---------------- Konuşma balonları ---------------- */
+function balon(hedef, metin, ms, opt = {}) {
+  const s = G.scene;
+  G.balloons.filter(b => b.hedef === hedef).forEach(balonSil);
+  const c = s.add.container(hedef.x, hedef.y - 20).setDepth(100);
+  const txt = s.add.text(0, 0, metin, { fontFamily: F, fontSize: '14px', fontStyle: '600', color: '#1D1F27', wordWrap: { width: 176, useAdvancedWrap: true }, resolution: 2, lineSpacing: -3 });
+  const pad = 9, w = Math.max(txt.width + pad * 2, 44), h = txt.height + pad * 1.2;
+  const dolgu = opt.stil === 'oyuncu' ? 0xF2D21B : opt.stil === 'telefon' ? 0xEAE6FF : 0xFFFFFF;
+  const g = s.add.graphics();
+  g.fillStyle(0x1D1F27, 1).fillRoundedRect(-w / 2 - 2, -h - 12, w + 4, h + 4, 12).fillTriangle(-9, -10, 9, -10, 0, 2);
+  g.fillStyle(dolgu, 1).fillRoundedRect(-w / 2, -h - 10, w, h, 10).fillTriangle(-6, -11, 6, -11, 0, -2);
+  txt.setPosition(-w / 2 + pad, -h - 10 + pad * 0.55);
+  c.add([g, txt]);
+  if (opt.ad) {
+    const ad = s.add.text(-w / 2 + 6, -h - 22, opt.ad, { fontFamily: F, fontSize: '11px', fontStyle: '800', color: '#FFFFFF', backgroundColor: '#6C5CE7', padding: { x: 5, y: 1 }, resolution: 2 }).setOrigin(0, 0.5);
+    c.add(ad);
+  }
+  c.setScale(0.6); s.tweens.add({ targets: c, scale: 1, duration: 140, ease: 'Back.Out' });
+  const b = { c, hedef, bitis: performance.now() + ms + 600 };
+  G.balloons.push(b);
+  return wait(ms);
+}
+function balonSil(b) { b.c.destroy(); G.balloons = G.balloons.filter(x => x !== b); }
+function balonGuncelle() {
+  const now = performance.now();
+  G.balloons.slice().forEach(b => { if (now > b.bitis) balonSil(b); else b.c.setPosition(b.hedef.x, b.hedef.y - 20); });
+}
+const soyle = (hedef, metin, ms = 2200, ad) => balon(hedef, metin, ms, { ad });
+const oyuncuDer = (metin, ms = 1500) => balon(G.player, metin, ms, { stil: 'oyuncu' });
+
+/* ---------------- Arayüz yardımcıları ---------------- */
+const sheet = $('sheet');
+function sec(baslikHtml, secenekler, anaIndex = -1) {
+  return new Promise(res => {
+    sheet.innerHTML = baslikHtml + secenekler.map((o, i) => `<button class="opt${i === anaIndex ? ' ana' : ''}" data-i="${i}">${esc(o)}</button>`).join('');
+    sheet.hidden = false;
+    sheet.onclick = e => { const b = e.target.closest('.opt'); if (!b) return; sheet.hidden = true; sheet.onclick = null; res(+b.dataset.i); };
+  });
+}
+const baslik = t => `<p class="s-title">${esc(t)}</p>`;
+function ilerleme(t, ms, etiket) {
+  return new Promise(res => {
+    sheet.innerHTML = `${baslik(t)}<div class="prog"><i id="pg"></i></div><div class="prog-lbl" id="pgl"></div>`;
+    sheet.hidden = false; sheet.onclick = null;
+    const t0 = performance.now();
+    const adim = () => {
+      const k = Math.min(1, (performance.now() - t0) / ms);
+      const i = $('pg'), l = $('pgl'); if (i) i.style.width = (k * 100) + '%'; if (l && etiket) l.textContent = etiket(k);
+      if (k < 1) requestAnimationFrame(adim); else { sheet.hidden = true; res(); }
+    };
+    requestAnimationFrame(adim);
+  });
+}
+let toastT;
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('goster'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('goster'), 2600); }
+
+/* ---------------- Oyun akışı ---------------- */
+document.querySelectorAll('#menu [data-mod]').forEach(b => {
+  if (b.dataset.mod === G.oncekiMod) b.classList.add('onceki');
+  b.addEventListener('click', () => basla(b.dataset.mod));
+});
+$('btnMap').onclick = () => { banaDon(); haritaModu(!G.mapMode); };
+$('btnBana').onclick = banaDon;
+$('egitimTamam').onclick = () => { $('egitim').hidden = true; try { localStorage.setItem('kv2-egitim', '1'); } catch (e) {} G.egitimde = false; if (G.egitimSonra) { const f = G.egitimSonra; G.egitimSonra = null; f(); } };
+$('btnNav').onclick = navigasyon;
+$('btnList').onclick = () => { if (!G.busy) manifestAc(); };
+$('btnCall').onclick = () => { if (!G.busy && G.sel) ara(G.sel); else if (!G.sel) toast('Önce listeden bir paket seç.'); };
+
+function basla(mod) {
+  if (!G.ready) { setTimeout(() => basla(mod), 200); return; }
+  try { localStorage.setItem('kv2-mod', mod); } catch (e) {}
+  const s = G.scene;
+  if (G.player) yokEt(G.player);
+  G.npcs.forEach(yokEt); G.npcs = [];
+  G.balloons.slice().forEach(balonSil);
+  G.navG.clear(); G.flag.setVisible(false);
+  Object.assign(G, {
+    mod, running: true, paused: false, busy: false, offering: false, time: 540, end: 1020,
+    rate: mod === 'motor' ? 480 / 300 : 480 / 420, money: 0, fuel: 100, energy: 100,
+    order: null, pkgs: [], sel: null, mapMode: false, returning: false, uyariYakit: false, uyariEnerji: false,
+    offerAt: performance.now() + 1800, soloAt: performance.now() + 5000, chatAt: 0, hudAt: 0, cayKullan: [],
+    stats: { teslim: 0, zamaninda: 0, gec: 0, bahsis: 0, yakitTL: 0, indirim: 0, nav: 0, kart: 0, komsu: 0, sube: 0, mola: 0, sohbet: 0, selam: 0 },
+    dostDegisim: {}
+  });
+  G.tankL = mod === 'motor' ? 2.5 : 6; // oyun ölçeği: bir vardiyalık depo
+  G.player = arac(s, mod, 0, 'Sen', true);
+  const bas = mod === 'motor' ? { c: 10, r: 15 } : places.aktarma.door;
+  yerlestir(G.player, bas.c, bas.r);
+  NPC_LISTE.forEach(n => {
+    const e = arac(s, n.tip, n.renk, n.ad, false);
+    let c, r; do { c = ri(COLS); r = ri(ROWS); } while (!isRoad(c, r) || Math.abs(c - bas.c) + Math.abs(r - bas.r) < 4);
+    e.c = n.c; yerlestir(e, c, r); e.hiz = n.tip === 'motor' ? 110 + ri(40) : 85 + ri(25); e.bekle = 0; e.sus = 0;
+    G.npcs.push(e);
+  });
+  const cam = s.cameras.main; cam.setBounds(0, -UST_BOSLUK, WW, WH + UST_BOSLUK + ALT_BOSLUK); cam.setZoom(1); cam.startFollow(G.player.body, true, 0.15, 0.15);
+  $('menu').hidden = true; $('report').hidden = true; $('hud').hidden = false; sheet.hidden = true;
+  $('btnList').hidden = mod !== 'arac'; $('btnCall').hidden = mod !== 'arac';
+  $('btnMap').textContent = 'Harita';
+  G.serbest = false; $('btnBana').hidden = true;
+  const devam = () => { if (mod === 'arac') kargoBasla(); else { G.offerAt = performance.now() + 1500; toast('Vardiya başladı. İlk sipariş geliyor...'); } };
+  let goruldu = false; try { goruldu = localStorage.getItem('kv2-egitim') === '1'; } catch (e) {}
+  if (!goruldu) { G.egitimde = true; G.paused = true; G.busy = true; G.egitimSonra = () => { G.paused = false; G.busy = false; devam(); }; $('egitim').hidden = false; }
+  else devam();
+  hudGuncelle();
+}
+
+function tick(dt) {
+  if (!G.running) return;
+  const now = performance.now();
+  balonGuncelle();
+  G.npcs.forEach(n => npcTick(n, dt, now));
+  if (now > G.chatAt) { G.chatAt = now + 500; sohbetler(now); }
+  if (!G.paused) {
+    G.time += dt * G.rate;
+    G.energy = Math.max(0, G.energy - dt * G.rate * 0.22);
+    if (!G.busy) {
+      const hiz = (G.mod === 'motor' ? 170 : 125) * (G.energy < 25 ? 0.75 : 1) * (G.fuel <= 0 ? 0.45 : 1);
+      const once = G.player.moved;
+      const r = ilerle(G.player, dt, hiz);
+      G.fuel = Math.max(0, G.fuel - (G.player.moved - once) / T * (G.mod === 'motor' ? 0.15 : 0.13));
+      if (r === 'vardi') vardi();
+    }
+    if (G.fuel < 20 && !G.uyariYakit) { G.uyariYakit = true; toast('Yakıt azalıyor. Haritadaki ⛽ anlaşmalı istasyona uğra.'); }
+    if (G.energy < 30 && !G.uyariEnerji) { G.uyariEnerji = true; toast('Yoruldun. Çay ocağında mola ver, enerjin dolsun.'); }
+    if (G.mod === 'motor' && !G.order && !G.busy && !G.offering && now > G.offerAt) siparisTeklif();
+    if (G.time >= G.end) { bitir('sure'); return; }
+  }
+  if (now > G.hudAt) { G.hudAt = now + 200; hudGuncelle(); }
+}
+
+function dokunma(p) {
+  if (!G.running || G.busy || !sheet.hidden) return;
+  const c = Math.floor(p.worldX / T), r = Math.floor(p.worldY / T);
+  let hedef = null;
+  if (isRoad(c, r)) hedef = { c, r };
+  else { const o = tileOwner[key(c, r)]; if (o) hedef = (o.lot || o.place).door; }
+  if (!hedef) return;
+  const s = G.scene; G.halka.clear().setAlpha(1).setScale(1).setPosition(p.worldX, p.worldY);
+  G.halka.lineStyle(4, 0xF2D21B, 1).strokeCircle(0, 0, 16);
+  s.tweens.add({ targets: G.halka, scale: 2, alpha: 0, duration: 450 });
+  git(hedef);
+  if (G.mapMode) haritaModu(false); else banaDon();
+}
+function banaDon() {
+  if (!G.serbest) return;
+  G.serbest = false; $('btnBana').hidden = true;
+  G.scene.cameras.main.startFollow(G.player.body, true, 0.15, 0.15);
+}
+function git(hedef) {
+  const yol = bfs(tileOf(G.player), hedef);
+  if (!yol) return;
+  G.player.path = yol; G.player.hedef = hedef;
+  const m = merkez(hedef.c, hedef.r);
+  G.flag.setPosition(m.x, m.y).setVisible(true);
+  if (!yol.length) vardi();
+}
+
+async function vardi() {
+  G.flag.setVisible(false);
+  const h = G.player.hedef; if (!h) return;
+  G.player.hedef = null;
+  const k = key(h.c, h.r), d = doorMap[k];
+  if (!d) return;
+  const L = d.lot, P = d.place;
+  if (G.mod === 'motor' && G.order) {
+    const o = G.order;
+    if (o.asama === 'al' && k === key(o.dukkan.door.c, o.dukkan.door.r)) return siparisAl();
+    if (o.asama === 'teslim' && k === key(o.hedefKapi.c, o.hedefKapi.r)) return siparisTeslim();
+  }
+  if (G.mod === 'arac') {
+    const pk = G.pkgs.find(p => bekliyor(p) && key(p.kapi.c, p.kapi.r) === k);
+    if (pk) return kargoVar(pk);
+  }
+  if (P) {
+    if (P.kind === 'istasyon') return yakitAl();
+    if (P.kind === 'aktarma') return aktarmayaVar();
+    if (P.kind === 'site') { G.busy = true; await soyle(P.anchor, 'Kime geldiniz? Listede yoksa içeri alamam.', 2000, 'Site güvenliği'); G.busy = false; return; }
+  }
+  if (L) {
+    if (L.special && L.special.tip === 'cay') return mola();
+    if (L.special && L.special.tip === 'servis') return servis();
+    if (L.special) { soyle(L.anchor, 'Hoş geldin! Şu an senin için sipariş yok.', 1800, L.special.ad); return; }
+    oyuncuDer('Burası ' + L.adres + '.', 1600);
+  }
+}
+
+/* ---------------- Motor: siparişler ---------------- */
+function siparisOlustur() {
+  const tipSec = rnd(); const tip = tipSec < 0.5 ? 'restoran' : tipSec < 0.68 ? 'market' : tipSec < 0.84 ? 'kafe' : 'eczane';
+  const dukkan = pick(shops.filter(s => s.special.tip === tip));
+  let musteri, hedefLot = null, site = false, adres;
+  const r = rnd();
+  if ((tip === 'eczane' && rnd() < 0.5)) { hedefLot = lotByTanidik('hasan'); }
+  else if (r < 0.25) { hedefLot = lotByTanidik(pick(['nermin', 'selin', 'murat', 'ece'])); }
+  else if (r < 0.42) { site = true; }
+  else hedefLot = pick(residential);
+  if (hedefLot && hedefLot.tanidik) musteri = { ad: TANIDIKLAR[hedefLot.tanidik].ad, c: TANIDIKLAR[hedefLot.tanidik].c, tid: hedefLot.tanidik };
+  else musteri = rastgeleMusteri();
+  if (site) adres = `Yeşil Vadi Sitesi, ${'ABCD'[ri(4)]} Blok D:${1 + ri(24)}`; else adres = hedefLot.adres;
+  const hedefKapi = site ? places.site.door : hedefLot.door;
+  const anchor = site ? places.site.anchor : hedefLot.anchor;
+  const d1 = (bfs(tileOf(G.player), dukkan.door) || []).length, d2 = (bfs(dukkan.door, hedefKapi) || []).length;
+  const prep = tip === 'eczane' ? 2 + ri(3) : 3 + ri(6);
+  const sure = Math.round((tip === 'eczane' ? 10 : 16) + (d1 + d2) * 0.42 + prep);
+  const ucret = Math.round(45 + d2 * 1.5 + (tip === 'eczane' ? 15 : 0));
+  return { tip, dukkan, musteri, site, adres, hedefKapi, anchor, prep, sure, ucret, asama: 'al' };
+}
+async function siparisTeklif() {
+  G.offering = true; G.busy = true; G.paused = true;
+  const o = siparisOlustur();
+  const html = `<div class="offer"><div class="ic">${o.dukkan.special.ikon}</div><div><b>${esc(o.dukkan.special.ad)}</b>
+    <span>Al: ${esc(o.dukkan.adres)}</span><span>Teslim: ${esc(o.adres)}</span>
+    ${o.tip === 'eczane' ? '<span class="etiket acil">Acil ilaç</span>' : ''}${o.musteri.tid ? `<span class="etiket dost">${esc(o.musteri.ad)}</span>` : ''}</div>
+    <div class="ucret">₺${o.ucret}<small>${o.sure} dk</small></div></div>`;
+  const i = await sec(html, ['Kabul et', 'Pas geç'], 0);
+  G.offering = false; G.busy = false; G.paused = false;
+  if (i === 0) {
+    o.son = G.time + o.sure; G.order = o;
+    toast('Sipariş alındı. Önce ' + o.dukkan.special.ad + '.');
+  } else G.offerAt = performance.now() + 2500;
+}
+async function siparisAl() {
+  const o = G.order; G.busy = true; G.paused = true;
+  await soyle(o.dukkan.anchor, pick(ALIS[o.tip]), 2000, o.dukkan.special.ad);
+  G.paused = false;
+  await ilerleme('Sipariş hazırlanıyor', o.prep / G.rate * 1000);
+  await oyuncuDer('Aldım, yola çıkıyorum!', 1100);
+  o.asama = 'teslim'; G.busy = false;
+  toast('Teslimat: ' + o.adres);
+}
+async function siparisTeslim() {
+  const o = G.order; G.busy = true; G.paused = true;
+  if (o.site) await siteKapisi();
+  const gec = G.time > o.son;
+  await oyuncuDer(o.tip === 'eczane' ? 'Eczaneden geldim, ilacınız!' : 'Kurye geldi, siparişiniz kapıda!', 1300);
+  const sahne = gec ? GEC_SAHNE : sahneSec(o.musteri, o.tip === 'eczane' ? 'eczane' : 'motor');
+  const sec2 = await konus(o.anchor, o.musteri, sahne);
+  const taban = gec ? Math.round(o.ucret * 0.8) : o.ucret, bahsis = sec2.tip || 0;
+  G.money += taban + bahsis; G.stats.teslim++; G.stats.bahsis += bahsis; gec ? G.stats.gec++ : G.stats.zamaninda++;
+  toast(`+₺${taban}${bahsis ? ` ve ₺${bahsis} bahşiş` : ''}${gec ? ' (geç teslim)' : ''}`);
+  G.order = null; G.busy = false; G.paused = false; G.offerAt = performance.now() + 1800;
+}
+function sahneSec(m, tur) { return m.tid ? pick(TANIDIKLAR[m.tid].sahneler) : pick(GENEL[tur]); }
+async function konus(anchor, musteri, sahne) {
+  const d = m => doldur(m, musteri);
+  await soyle(anchor, d(sahne.say), 2100, musteri.ad);
+  const i = await sec(`<p class="s-soz"><b>${esc(musteri.ad)}:</b> “${esc(d(sahne.say))}”</p>` + baslik('Ne diyeceksin?'), sahne.opts.map(o => d(o.t)));
+  const o = sahne.opts[i];
+  await oyuncuDer(d(o.t), 1500);
+  if (o.reply) await soyle(anchor, d(o.reply), 1800, musteri.ad);
+  if (o.min) G.time += o.min;
+  if (musteri.tid && o.dost) {
+    G.dost[musteri.tid] = Math.max(0, (G.dost[musteri.tid] || 0) + o.dost);
+    G.dostDegisim[musteri.tid] = (G.dostDegisim[musteri.tid] || 0) + o.dost;
+  }
+  G.stats.sohbet++;
+  return o;
+}
+async function siteKapisi() {
+  const A = places.site.anchor;
+  await soyle(A, 'Merhaba, kime geldiniz?', 1500, 'Site güvenliği');
+  const i = await sec(baslik('Site girişi'), ['Kurye Kartımı okut', 'Kaskı çıkarıp kimlik göster'], 0);
+  if (i === 0) {
+    await oyuncuDer('Kurye Kartım burada, okutabilirsiniz.', 1400);
+    await soyle(A, 'Kart geçerli, fotoğraf da tamam. Buyur, kask kalabilir.', 2000, 'Site güvenliği');
+    G.stats.kart++;
+  } else {
+    await oyuncuDer('Bir saniye, kaskı çıkarıyorum...', 1500);
+    G.time += 3;
+    await soyle(A, 'Kimliğe bakayım... Tamam. Kurye Kartı olsa daha hızlı olurdu.', 2200, 'Site güvenliği');
+  }
+}
+
+/* ---------------- Araç: kargo ---------------- */
+const bekliyor = p => p.durum === 'bekliyor' || p.durum === 'tekrar';
+function paketleriHazirla() {
+  const kullan = new Set(); const pk = [];
+  Object.keys(TANIDIKLAR).forEach(tid => { const l = lotByTanidik(tid); kullan.add(l.id); pk.push({ lot: l, musteri: { ad: TANIDIKLAR[tid].ad, c: TANIDIKLAR[tid].c, tid } }); });
+  for (let i = 0; i < 3; i++) pk.push({ site: true, musteri: rastgeleMusteri() });
+  while (pk.length < PAKET_SAYISI) { const l = pick(residential); if (kullan.has(l.id)) continue; kullan.add(l.id); pk.push({ lot: l, musteri: rastgeleMusteri() }); }
+  pk.sort(() => rnd() - 0.5);
+  return pk.map((p, i) => ({
+    no: i + 1, ...p,
+    adres: p.site ? `Yeşil Vadi Sitesi, ${'ABCD'[ri(4)]} Blok D:${1 + ri(24)}` : p.lot.adres,
+    kapi: p.site ? places.site.door : p.lot.door,
+    anchor: p.site ? places.site.anchor : p.lot.anchor,
+    araNot: rnd() < 0.3, evde: rnd() < (p.musteri.tid ? 0.85 : 0.65), arandi: false, talimat: null,
+    komsu: pick(KOMSULAR), durum: 'bekliyor'
+  }));
+}
+async function kargoBasla() {
+  G.pkgs = paketleriHazirla();
+  G.busy = true; G.paused = true;
+  const A = places.aktarma.anchor;
+  await soyle(A, `Günaydın! Bugün ${PAKET_SAYISI} paket var, araca yüklüyoruz.`, 2200, 'Şef Bülent');
+  await ilerleme('Paketler araca yükleniyor', 2200, k => `${Math.round(k * PAKET_SAYISI)} / ${PAKET_SAYISI} paket`);
+  await soyle(A, '“Gelmeden arayın” notlu paketlere dikkat. Kolay gelsin!', 2200, 'Şef Bülent');
+  G.busy = false; G.paused = false;
+  manifestAc();
+}
+function manifestAc() {
+  G.paused = true;
+  const kalan = G.pkgs.filter(bekliyor).length;
+  const sirali = [...G.pkgs].sort((a, b) => (bekliyor(b) - bekliyor(a)) || a.no - b.no);
+  const satir = p => {
+    const et = [];
+    if (p.araNot && bekliyor(p)) et.push('<span class="etiket ara">Gelmeden arayın</span>');
+    if (p.musteri.tid) et.push('<span class="etiket dost">Tanıdık</span>');
+    if (p.arandi && p.talimat === 'evde') et.push('<span class="etiket bilgi">Evde</span>');
+    if (p.arandi && p.talimat === 'komsu') et.push(`<span class="etiket bilgi">Komşuya: ${esc(p.komsu)}</span>`);
+    if (p.arandi && p.talimat === 'sonra') et.push(`<span class="etiket bilgi">${fmt(p.evdeSonra)} sonrası evde</span>`);
+    if (p.durum === 'tekrar') et.push('<span class="etiket">Not bırakıldı</span>');
+    const durumYazi = { teslim: 'Teslim edildi', komsu: 'Komşuya bırakıldı', sube: 'Şubeye' }[p.durum];
+    return `<div class="pk${bekliyor(p) ? '' : ' bitti'}${G.sel === p ? ' secili' : ''}"><div class="no">${p.no}</div>
+      <div><b>${esc(p.musteri.ad)}</b><span class="adr">${esc(p.adres)}</span>${et.join('')}</div>
+      <div class="btns">${bekliyor(p) ? `<button class="sec" data-sec="${p.no}">Seç</button><button data-ara="${p.no}">Ara</button>` : `<span class="durumu">${durumYazi}</span>`}</div></div>`;
+  };
+  sheet.innerHTML = `<div class="liste-ust"><p class="s-title">Paketler: ${kalan} kaldı</p><button class="kapat" data-kapat>Kapat</button></div>${sirali.map(satir).join('')}`;
+  sheet.hidden = false;
+  sheet.onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.kapat !== undefined) { kapat(); return; }
+    const p = G.pkgs.find(x => x.no === +(b.dataset.sec || b.dataset.ara));
+    if (b.dataset.sec) { G.sel = p; kapat(); toast(`Seçtin: ${p.adres}`); }
+    else if (b.dataset.ara) { kapat(); ara(p); }
+  };
+  function kapat() { sheet.hidden = true; sheet.onclick = null; G.paused = false; hudGuncelle(); }
+}
+async function ara(p) {
+  G.busy = true; G.paused = true; G.sel = p;
+  sheet.onclick = null;
+  sheet.innerHTML = `<div class="phone"><div class="ic">📞</div><b>${esc(p.musteri.ad)}</b><div class="durum">Aranıyor...</div></div>`;
+  sheet.hidden = false;
+  await wait(1300);
+  G.time += 1; p.arandi = true;
+  let soz;
+  if (p.evde) { soz = pick(['Evdeyim, bekliyorum.', 'Buyrun, evdeyim. Zile basın.', 'Evdeyim ama zil bozuk, kapıyı çalın.']); p.talimat = 'evde'; }
+  else {
+    const r = rnd();
+    if (r < 0.4) { soz = `İşteyim. Komşum ${p.komsu}'a bırakabilir misiniz?`; p.talimat = 'komsu'; }
+    else if (r < 0.7) { soz = 'Bugün yokum, şubeden alırım.'; p.talimat = 'sube'; }
+    else { soz = 'Yarım saate evde olurum, sonra uğrar mısınız?'; p.talimat = 'sonra'; p.evdeSonra = G.time + 30; }
+  }
+  const secenek = p.talimat === 'sube' ? ['Şubeye bırakacağım', 'Tamam'] : ['Tamam'];
+  const i = await sec(`<div class="phone"><div class="ic">📞</div><b>${esc(p.musteri.ad)}</b><div class="durum">Görüşme</div><div class="soz">${esc(soz)}</div></div>`, secenek, 0);
+  if (p.talimat === 'sube' && i === 0) { paketBitir(p, 'sube', 10); toast('Paket şubeye bırakılacak.'); }
+  G.busy = false; G.paused = false; kargoBittiMi();
+}
+async function kargoVar(p) {
+  G.busy = true; G.paused = true;
+  if (p.site) await siteKapisi();
+  const evde = p.evde || (p.talimat === 'sonra' && G.time >= p.evdeSonra);
+  await oyuncuDer('Kargo! Zile basıyorum...', 1300);
+  if (evde) {
+    const o = await konus(p.anchor, p.musteri, sahneSec(p.musteri, 'arac'));
+    let ucret = 35 + (o.tip || 0);
+    if (p.araNot && !p.arandi) { await soyle(p.anchor, 'Keşke arasaydınız, az kalsın çıkıyordum.', 1800, p.musteri.ad); ucret -= 3; }
+    G.stats.bahsis += o.tip || 0;
+    paketBitir(p, 'teslim', ucret);
+  } else if (p.talimat === 'komsu') {
+    await oyuncuDer(`Kimse yok. ${p.komsu}'a bırakayım.`, 1500);
+    await soyle(p.anchor, 'Tabii evladım, ben veririm.', 1700, p.komsu);
+    paketBitir(p, 'komsu', 35);
+  } else {
+    await oyuncuDer('Kimse açmıyor galiba...', 1300);
+    let sordu = false;
+    for (;;) {
+      const ops = []; if (!sordu) ops.push('Komşuya sor'); ops.push('Not bırak, sonra uğra', 'Şubeye bırakacağım');
+      const sc = ops[await sec(baslik('Alıcı evde değil. Ne yapacaksın?'), ops)];
+      if (sc === 'Komşuya sor') {
+        sordu = true; G.time += 2;
+        await oyuncuDer('Merhaba, komşunuza kargo var, alabilir misiniz?', 1500);
+        if (rnd() < 0.55) { await soyle(p.anchor, 'Ben alırım, komşumuz zaten.', 1700, p.komsu); paketBitir(p, 'komsu', 32); break; }
+        await soyle(p.anchor, 'Kusura bakma, tanımıyorum.', 1600, pick(['Üst kat', 'Yan daire']));
+        continue;
+      }
+      if (sc.startsWith('Not')) {
+        p.durum = 'tekrar'; p.evde = rnd() < 0.6; p.talimat = null; p.arandi = false;
+        toast('Not bıraktın. Paket listende, sonra tekrar uğra.'); break;
+      }
+      paketBitir(p, 'sube', 10); toast('Paket şubeye bırakılacak.'); break;
+    }
+  }
+  G.busy = false; G.paused = false; kargoBittiMi();
+}
+function paketBitir(p, durum, ucret) {
+  p.durum = durum; G.money += ucret;
+  if (durum === 'teslim') G.stats.teslim++; if (durum === 'komsu') { G.stats.komsu++; G.stats.teslim++; } if (durum === 'sube') G.stats.sube++;
+  if (G.sel === p) G.sel = null;
+  toast(`+₺${ucret}`);
+}
+function kargoBittiMi() {
+  if (!G.returning && !G.pkgs.some(bekliyor)) { G.returning = true; toast('Bütün paketler tamam! Aktarma merkezine dön.'); }
+}
+async function aktarmayaVar() {
+  G.busy = true; G.paused = true;
+  const A = places.aktarma.anchor;
+  if (G.mod !== 'arac') { await soyle(A, 'Burası kargo aktarma. Motorlu siparişler restoranlardan çıkıyor.', 2000, 'Şef Bülent'); }
+  else if (G.returning) { await soyle(A, 'Eline sağlık! Raporu alayım.', 1800, 'Şef Bülent'); G.busy = false; bitir('bitti'); return; }
+  else await soyle(A, `Daha ${G.pkgs.filter(bekliyor).length} paketin var, hadi yola!`, 1800, 'Şef Bülent');
+  G.busy = false; G.paused = false;
+}
+
+/* ---------------- İstasyon, çay ocağı, servis ---------------- */
+async function yakitAl() {
+  G.busy = true; G.paused = true;
+  const A = places.istasyon.anchor;
+  const litre = (100 - G.fuel) / 100 * G.tankL;
+  if (litre < 0.5) { await soyle(A, 'Depon dolu, kolay gelsin!', 1500, 'Pompacı'); G.busy = false; G.paused = false; return; }
+  const normal = litre * LITRE, ind = normal * 0.04, odenecek = Math.round(normal - ind);
+  await soyle(A, 'Kurye Club anlaşmalı mısın? %4 indirimi hemen düşüyorum.', 2000, 'Pompacı');
+  const i = await sec(baslik(`${litre.toFixed(1)} litre, normalde ₺${Math.round(normal)}`), [`Depoyu doldur: ₺${odenecek}`, 'Vazgeç'], 0);
+  if (i === 0) {
+    G.fuel = 100; G.money -= odenecek; G.stats.yakitTL += odenecek; G.stats.indirim += ind; G.uyariYakit = false;
+    await oyuncuDer(`Anlaşmayla ₺${Math.round(ind)} cebimde kaldı.`, 1600);
+  }
+  G.busy = false; G.paused = false;
+}
+async function mola() {
+  G.busy = true; G.paused = true;
+  const C = places.cay;
+  let kalan = CAY_SOHBET.map((_, i) => i).filter(i => !G.cayKullan.includes(i));
+  if (!kalan.length) { G.cayKullan = []; kalan = CAY_SOHBET.map((_, i) => i); }
+  const idx = pick(kalan); G.cayKullan.push(idx);
+  await oyuncuDer('Selam beyler, bir çay alayım.', 1300);
+  for (const [kim, s] of CAY_SOHBET[idx]) await soyle(kim === 'K' ? C.kAnchor : C.rAnchor, s, 2300, kim === 'K' ? 'Kader' : 'Ramazan');
+  const i = await sec(baslik('Ne diyeceksin?'), ['Haklısınız, ben de bakacağım.', 'Hadi bana eyvallah, işe dönüyorum.']);
+  await oyuncuDer(i === 0 ? 'Haklısınız, ben de bakacağım.' : 'Hadi bana eyvallah, işe dönüyorum.', 1300);
+  await soyle(C.kAnchor, 'Afiyet olsun, kolay gelsin!', 1300, 'Kader');
+  G.energy = 100; G.time += 10; G.stats.mola++; G.uyariEnerji = false;
+  toast('Enerjin doldu.');
+  G.busy = false; G.paused = false;
+}
+async function servis() {
+  G.busy = true; G.paused = true;
+  const L = places.servis;
+  await soyle(L.anchor, 'Kurye Club’lılara işçilik %15 indirimli. Lastik havana bakayım mı?', 2100, 'Usta');
+  const i = await sec(baslik('Usta Motor Servis'), ['Bak usta (1 dk)', 'Sonra uğrarım']);
+  if (i === 0) { G.time += 1; await soyle(L.anchor, 'Lastikler tamam, yolun açık olsun.', 1600, 'Usta'); }
+  G.busy = false; G.paused = false;
+}
+
+/* ---------------- NPC kuryeler ---------------- */
+function npcTick(n, dt, now) {
+  if (!n.path.length) {
+    if (now < n.bekle) return;
+    let h, deneme = 0; const t = tileOf(n);
+    do { h = { c: t.c + ri(17) - 8, r: t.r + ri(17) - 8 }; deneme++; } while (!isRoad(h.c, h.r) && deneme < 30);
+    if (isRoad(h.c, h.r)) n.path = bfs(t, h) || [];
+    return;
+  }
+  if (ilerle(n, dt, n.hiz) === 'vardi') n.bekle = now + 800 + ri(2500);
+}
+const mesafe = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+function sohbetler(now) {
+  if (G.busy || G.mapMode) return;
+  const P = G.player;
+  for (const n of G.npcs) {
+    if (mesafe(n, P) < 80 && now > n.sus) {
+      n.sus = now + 25000; G.stats.selam++;
+      soyle(n, pick(SELAM), 1900, n.ad);
+      setTimeout(() => { if (!G.busy && G.running) oyuncuDer(doldur(pick(CEVAP), n), 1500); }, 1100);
+      return;
+    }
+  }
+  for (let i = 0; i < G.npcs.length; i++) for (let j = i + 1; j < G.npcs.length; j++) {
+    const a = G.npcs[i], b = G.npcs[j];
+    if (mesafe(a, b) < 70 && now > a.sus && now > b.sus && mesafe(a, P) < 420) {
+      a.sus = b.sus = now + 30000;
+      const ik = pick(NPC_IKILI);
+      soyle(a, doldur(ik[0], b), 2200, a.ad);
+      setTimeout(() => { if (G.running) soyle(b, doldur(ik[1], a), 2200, b.ad); }, 1300);
+      return;
+    }
+  }
+  if (now > G.soloAt) {
+    G.soloAt = now + 7000 + ri(6000);
+    const yakin = G.npcs.filter(n => mesafe(n, P) < 380 && now > n.sus);
+    if (yakin.length) { const n = pick(yakin); n.sus = now + 9000; soyle(n, pick(NPC_YOL), 2600, n.ad); }
+  }
+}
+
+/* ---------------- Harita ve navigasyon ---------------- */
+function haritaModu(ac) {
+  const cam = G.scene.cameras.main;
+  G.mapMode = ac;
+  if (ac) {
+    cam.stopFollow(); cam.removeBounds();
+    const z = Math.min(cam.width / WW, (cam.height - 150) / WH) * 0.98;
+    cam.zoomTo(z, 350, 'Sine.easeInOut', true); cam.pan(WW / 2, WH / 2 - 10 / z, 350, 'Sine.easeInOut', true);
+    $('btnMap').textContent = 'Kapat';
+    toast('Bir yere dokun, oraya gidersin.');
+  } else {
+    cam.setBounds(0, -UST_BOSLUK, WW, WH + UST_BOSLUK + ALT_BOSLUK); cam.zoomTo(1, 300, 'Sine.easeInOut', true); cam.startFollow(G.player.body, true, 0.15, 0.15);
+    $('btnMap').textContent = 'Harita';
+  }
+}
+function aktifHedef() {
+  if (G.mod === 'motor' && G.order) return G.order.asama === 'al' ? G.order.dukkan.door : G.order.hedefKapi;
+  if (G.mod === 'arac') { if (G.returning) return places.aktarma.door; if (G.sel) return G.sel.kapi; }
+  return null;
+}
+function navigasyon() {
+  if (!G.running || G.busy) return;
+  const h = aktifHedef();
+  if (!h) { toast(G.mod === 'arac' ? 'Önce listeden bir paket seç.' : 'Önce bir sipariş kabul et.'); return; }
+  const yol = bfs(tileOf(G.player), h); if (!yol) return;
+  const g = G.navG; g.clear(); g.setAlpha(1);
+  g.lineStyle(7, 0x6C5CE7, 0.85).beginPath(); g.moveTo(G.player.x, G.player.y);
+  yol.forEach(t => { const m = merkez(t.c, t.r); g.lineTo(m.x, m.y); });
+  g.strokePath();
+  const son = merkez(h.c, h.r); g.fillStyle(0x6C5CE7, 1).fillCircle(son.x, son.y, 9);
+  G.scene.tweens.add({ targets: g, alpha: 0, delay: 5000, duration: 900 });
+  G.time += 3; G.stats.nav++;
+  oyuncuDer('Navigasyona bir bakayım...', 1300);
+  if (G.stats.nav === 1) toast('Navigasyon 3 dakikana mal oldu. Numaraları takip etmek daha hızlı.');
+}
+
+/* ---------------- HUD ---------------- */
+function hudGuncelle() {
+  $('clock').textContent = fmt(G.time);
+  $('money').innerHTML = `₺${Math.round(G.money)}<small>bugünkü kazanç</small>`;
+  const fb = $('fuelBar'), eb = $('enBar');
+  fb.style.width = G.fuel + '%'; fb.classList.toggle('dusuk', G.fuel < 20);
+  eb.style.width = G.energy + '%'; eb.classList.toggle('dusuk', G.energy < 30);
+  let h = '';
+  if (G.mod === 'motor') {
+    const o = G.order;
+    if (!o) h = '<strong>Sipariş bekleniyor...</strong><small>Boştayken çay ocağına ya da istasyona uğrayabilirsin.</small>';
+    else {
+      const gec = G.time > o.son;
+      h = o.asama === 'al'
+        ? `<strong>Al:</strong> ${esc(o.dukkan.special.ad)}, ${esc(o.dukkan.adres)}<small>Son teslim ${fmt(o.son)}</small>`
+        : `<strong>Teslim:</strong> ${esc(o.adres)}<small class="${gec ? 'gec' : ''}">${esc(o.musteri.ad)}, son teslim ${fmt(o.son)}${gec ? ' (gecikti)' : ''}</small>`;
+    }
+  } else {
+    const kalan = G.pkgs.filter(bekliyor).length;
+    if (G.returning) h = '<strong>Aktarma merkezine dön</strong><small>Bütün paketler bitti.</small>';
+    else if (G.sel) h = `<strong>${esc(G.sel.adres)}</strong><small>${esc(G.sel.musteri.ad)}${G.sel.araNot && !G.sel.arandi ? ', gelmeden ara' : ''}. Kalan paket: ${kalan}</small>`;
+    else h = `<strong>Kalan paket: ${kalan}</strong><small>Paketler listesinden birini seç ya da adresleri sırayla gez.</small>`;
+  }
+  $('task').innerHTML = h;
+}
+
+/* ---------------- Rapor ---------------- */
+function bitir(neden) {
+  G.running = false; G.paused = true; G.busy = true;
+  sheet.hidden = true; $('hud').hidden = true;
+  try { localStorage.setItem('kv2-dost', JSON.stringify(G.dost)); } catch (e) {}
+  const S = G.stats, net = Math.round(G.money);
+  const kutu = (b, s) => `<div><b>${b}</b><span>${s}</span></div>`;
+  let g = '';
+  if (G.mod === 'motor') {
+    g = kutu(S.teslim, 'teslimat') + kutu(S.zamaninda, 'zamanında') + kutu('₺' + S.bahsis, 'bahşiş') + kutu('₺' + net, 'net kazanç')
+      + kutu('₺' + Math.round(S.indirim), 'yakıtta indirim') + kutu(S.kart, 'Kurye Kartı okutma');
+  } else {
+    const kalan = G.pkgs.filter(bekliyor).length;
+    g = kutu(S.teslim + '/' + PAKET_SAYISI, 'teslim edilen') + kutu(S.komsu, 'komşuya') + kutu(S.sube, 'şubeye') + kutu(kalan, 'dağıtılamayan')
+      + kutu('₺' + net, 'net kazanç') + kutu('₺' + Math.round(S.indirim), 'yakıtta indirim');
+  }
+  const dost = Object.entries(G.dostDegisim).filter(([, v]) => v > 0)
+    .map(([k, v]) => `${esc(TANIDIKLAR[k].ad)} ${'❤️'.repeat(Math.min(5, Math.ceil((G.dost[k] || 0) / 2)))} <span style="color:var(--soluk)">(+${v})</span>`).join('<br>');
+  const tamam = neden === 'bitti' || (neden === 'sure' && S.teslim >= 3);
+  $('report').innerHTML = `<div class="ekran-ic">
+    <p class="rapor-k">${neden === 'bitti' ? 'Vardiya tamam!' : 'Vardiya bitti'}</p>
+    <p class="alt">${G.mod === 'motor' ? 'Motorlu kurye' : 'Araçlı kurye'}, ${fmt(G.time)}'da kapattın. ${S.sohbet} kişiyle sohbet ettin, ${S.selam} kuryeyle selamlaştın, navigasyona ${S.nav} kez baktın.</p>
+    <div class="rapor-g">${g}</div>
+    ${dost ? `<div class="dostlar"><b>Mahallede dostların</b><br>${dost}</div>` : ''}
+    ${tamam ? '<div class="puan">Vardiyayı tamamladın: +10 puan</div>' : ''}
+    <div class="rapor-b"><button data-r="ayni">Tekrar oyna</button><button class="ikincil" data-r="diger">${G.mod === 'motor' ? 'Araçlı kuryeyi dene' : 'Motorlu kuryeyi dene'}</button></div></div>`;
+  $('report').scrollTop = 0;
+  $('report').hidden = false;
+  $('report').onclick = e => { const b = e.target.closest('button'); if (!b) return; basla(b.dataset.r === 'ayni' ? G.mod : (G.mod === 'motor' ? 'arac' : 'motor')); };
+}
+
+/* ---------------- Başlat ---------------- */
+const oyun = new Phaser.Game({
+  type: Phaser.AUTO,
+  parent: 'game',
+  backgroundColor: '#93B474',
+  scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
+  scene: [Sehir],
+  render: { antialias: true }
+});
+// WebView'de ilk boyut geç gelebilir; ekran boyutu değişince oyunu yeniden ölçekle
+const yenidenOlcekle = () => { try { oyun.scale.refresh(); } catch (e) {} };
+window.addEventListener('resize', yenidenOlcekle);
+window.addEventListener('orientationchange', () => setTimeout(yenidenOlcekle, 300));
+if (window.visualViewport) window.visualViewport.addEventListener('resize', yenidenOlcekle);
+[300, 1000].forEach(ms => setTimeout(yenidenOlcekle, ms));
+</script>
+</body>
+</html>
