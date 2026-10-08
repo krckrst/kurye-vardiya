@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Kurye Vardiyası · Kurye Club</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --asfalt:#2A2D3A; --asfalt2:#343849; --serit:#F4C542; --mor:#4834D4; --mor2:#6C5CE7;
+  --yesil:#16A34A; --kirmizi:#DC2626; --panel:#FFFFFF; --zemin:#EEF0F7; --ink:#1B1633; --soluk:#6B6585;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --panel:#1E1B30; --zemin:#14121F; --ink:#EEEBFA; --soluk:#A39DC0; }
+}
+:root[data-theme="dark"]{ --panel:#1E1B30; --zemin:#14121F; --ink:#EEEBFA; --soluk:#A39DC0; }
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%}
+body{margin:0;background:var(--zemin);color:var(--ink);font-family:"Rubik",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-tap-highlight-color:transparent;user-select:none;overflow-x:hidden;overflow-y:auto}
+#oyun{min-height:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column}
+/* Üst gösterge */
+.hud{display:flex;align-items:center;gap:10px;padding:10px 12px 8px}
+.hud .puan{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;min-width:70px}
+.hud .puan small{display:block;font-size:11px;font-weight:500;color:var(--soluk)}
+.sure{flex:1}
+.sure .bar,.yakit .bar{height:8px;border-radius:6px;background:rgba(127,127,127,.2);overflow:hidden}
+.sure .bar i{display:block;height:100%;background:var(--mor);transition:width .25s linear}
+.sure span,.yakit span{font-size:11px;color:var(--soluk);display:flex;justify-content:space-between;margin-bottom:3px}
+.yakit{width:78px}
+.yakit .bar i{display:block;height:100%;background:var(--yesil)}
+.yakit.az .bar i{background:var(--kirmizi)}
+/* Harita */
+.harita{position:relative;margin:0 10px;border-radius:18px;overflow:hidden;background:var(--asfalt);flex:0 0 auto}
+canvas{display:block;width:100%;touch-action:none}
+.durum{margin:8px 10px 0;background:#1E1B30;color:#fff;border-radius:12px;
+  padding:8px 12px;font-size:13.5px;line-height:1.35;min-height:38px;transition:opacity .2s}
+.durum:empty{opacity:.35}
+.durum:empty::before{content:"Haritada bir yere dokunarak git.";color:rgba(255,255,255,.7)}
+.hava{position:absolute;top:10px;left:10px;background:rgba(20,18,31,.75);color:#fff;font-size:12px;border-radius:20px;padding:4px 10px;display:none}
+/* Siparişler */
+.alt{flex:0 0 auto;display:flex;flex-direction:column;padding:8px 10px 12px;gap:6px}
+.baslik{font-size:13px;font-weight:700;color:var(--soluk);display:flex;justify-content:space-between;padding:0 2px}
+.liste{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;flex:0 0 auto;align-items:stretch}
+.liste::-webkit-scrollbar{display:none}
+.kart{flex:0 0 164px;background:var(--panel);border-radius:14px;padding:8px 10px;border:2px solid transparent;cursor:pointer;position:relative}
+.kart.tasiniyor{border-color:var(--mor)}
+.kart .ust{display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px}
+.kart .ust b{font-size:20px}
+.kart .bilgi{font-size:12px;color:var(--soluk);margin-top:2px;line-height:1.35}
+.kart .alt-satir{display:flex;justify-content:space-between;align-items:center;margin-top:6px;gap:6px}
+.kart .odul{font-weight:800;color:var(--mor);font-size:15px}
+.kart button{font:inherit;font-size:12.5px;font-weight:700;border:0;border-radius:9px;padding:6px 10px;background:var(--mor);color:#fff;cursor:pointer}
+.kart .sayac{height:4px;border-radius:3px;background:rgba(127,127,127,.2);margin-top:6px;overflow:hidden}
+.kart .sayac i{display:block;height:100%;background:var(--serit)}
+.kart .etiket{font-size:11px;font-weight:700;padding:2px 7px;border-radius:12px;background:rgba(72,52,212,.12);color:var(--mor)}
+.kart .etiket.hazir{background:rgba(22,163,74,.14);color:var(--yesil)}
+.kart .etiket.gec{background:rgba(220,38,38,.12);color:var(--kirmizi)}
+.bos{font-size:13px;color:var(--soluk);padding:14px 4px}
+.ipucu{font-size:12px;color:var(--soluk);padding:0 2px}
+/* Katmanlar */
+.katman{position:fixed;inset:0;background:rgba(15,12,30,.72);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+.katman[hidden]{display:none}
+.kutu{background:var(--panel);color:var(--ink);border-radius:22px;padding:22px 20px;width:100%;max-width:380px;text-align:center}
+.kutu h2{margin:6px 0 6px;font-size:24px;font-weight:800;line-height:1.15}
+.kutu p{margin:0 0 14px;color:var(--soluk);font-size:14.5px;line-height:1.45}
+.kutu .ana{display:block;width:100%;font:inherit;font-weight:700;font-size:16px;border:0;border-radius:14px;padding:14px;background:var(--mor);color:#fff;cursor:pointer;margin-top:8px}
+.kutu .ikincil{display:block;width:100%;font:inherit;font-weight:600;font-size:15px;border:2px solid rgba(127,127,127,.3);border-radius:14px;padding:12px;background:transparent;color:var(--ink);cursor:pointer;margin-top:8px}
+.kutu .ikon{font-size:54px;line-height:1}
+.kurallar{text-align:left;font-size:13.5px;line-height:1.5;color:var(--ink);margin:4px 0 12px;padding-left:18px}
+.kurallar li{margin-bottom:4px}
+/* Güvenlik kapısı: oyunun akılda kalan anı */
+.kapi{background:linear-gradient(180deg,#1E1B30,#2A2650);color:#fff}
+.kapi p{color:rgba(255,255,255,.75)}
+.kapi .kart-id{margin:14px auto 6px;width:230px;border-radius:16px;background:#fff;color:var(--ink);padding:14px;position:relative;overflow:hidden}
+.kapi .kart-id .ad{font-weight:800;font-size:17px}
+.kapi .kart-id .kod{margin-top:6px;background:var(--mor);color:#fff;border-radius:10px;padding:6px;font-weight:800;letter-spacing:4px}
+.kapi .kart-id .tara{position:absolute;left:0;right:0;height:3px;background:#22C55E;box-shadow:0 0 12px #22C55E;top:0;opacity:0}
+.kapi.taraniyor .tara{opacity:1;animation:tara 1s ease-in-out}
+@keyframes tara{0%{top:0}100%{top:100%}}
+.kapi .kayit{font-size:13px;color:#86EFAC;min-height:20px;margin-top:6px}
+.kapi .ana{background:#22C55E;color:#0B2E16}
+.kapi .ikincil{color:#fff;border-color:rgba(255,255,255,.3)}
+.sonuc-satir{display:flex;justify-content:space-between;font-size:14.5px;padding:6px 2px;border-bottom:1px solid rgba(127,127,127,.15)}
+.sonuc-satir b{font-variant-numeric:tabular-nums}
+.sira{text-align:left;margin-top:14px}
+.sira div{display:flex;justify-content:space-between;padding:6px 10px;border-radius:10px;font-size:14px}
+.sira div.sen{background:rgba(72,52,212,.12);font-weight:700}
+.sira small{display:block;font-size:11.5px;color:var(--soluk);margin:4px 2px 6px}
+.puanuc{position:fixed;font-weight:800;font-size:20px;pointer-events:none;z-index:5;animation:uc 1.1s ease-out forwards}
+@keyframes uc{0%{opacity:0;transform:translateY(0) scale(.8)}15%{opacity:1;transform:translateY(-6px) scale(1.1)}100%{opacity:0;transform:translateY(-46px) scale(1)}}
+.yakit + .yakit{margin-top:6px}
+.saglik{width:84px}
+.avantaj{position:absolute;left:12px;right:12px;top:12px;background:#fff;color:#1B1633;border-radius:14px;padding:10px 12px;
+  display:flex;gap:10px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.25);transform:translateY(-140%);transition:transform .35s cubic-bezier(.2,.9,.3,1.2);pointer-events:none}
+.avantaj.goster{transform:translateY(0)}
+.avantaj .rozet{flex:0 0 40px;height:40px;border-radius:50%;background:#4834D4;color:#fff;display:grid;place-items:center;font-size:20px}
+.avantaj b{display:block;font-size:14px;line-height:1.25}
+.avantaj span{font-size:12.5px;color:#16A34A;font-weight:700}
+.hizcip{position:absolute;top:10px;right:10px;background:rgba(20,18,31,.75);color:#fff;font-size:12px;border-radius:20px;padding:4px 10px;font-variant-numeric:tabular-nums}
+.kilit{background:linear-gradient(180deg,#7F1D1D,#450A0A);color:#fff}
+.kilit p{color:rgba(255,255,255,.8)}
+.kilit .hiz{font-size:56px;font-weight:800;line-height:1;margin:8px 0 2px;font-variant-numeric:tabular-nums}
+.kilit .hiz small{font-size:18px;font-weight:500;opacity:.8}
+.kilit .bekle{height:8px;border-radius:6px;background:rgba(255,255,255,.2);overflow:hidden;margin:14px 0 6px}
+.kilit .bekle i{display:block;height:100%;background:#22C55E;width:0;transition:width .3s linear}
+.kilit small.not{display:block;font-size:12.5px;opacity:.75}
+.dene{background:none;border:0;color:var(--soluk);font:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;margin-top:6px}
+button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){.puanuc,.kapi.taraniyor .tara{animation:none}}
+</style>
+</head>
+<body>
+<div id="oyun">
+  <div class="hud">
+    <div class="puan"><span id="puan">0</span><small>puan</small></div>
+    <div class="sure"><span><em style="font-style:normal">Vardiya</em><em style="font-style:normal" id="sureYazi">2:30</em></span><div class="bar"><i id="sureBar" style="width:100%"></i></div></div>
+    <div class="saglik">
+      <div class="yakit" id="yakitKutu"><span><em style="font-style:normal">⛽ Yakıt</em><em style="font-style:normal" id="yakitYazi">100</em></span><div class="bar"><i id="yakitBar" style="width:100%"></i></div></div>
+      <div class="yakit" id="enerjiKutu"><span><em style="font-style:normal">💪 Enerji</em><em style="font-style:normal" id="enerjiYazi">100</em></span><div class="bar"><i id="enerjiBar" style="width:100%"></i></div></div>
+    </div>
+  </div>
+  <div class="harita" id="haritaKutu">
+    <canvas id="c"></canvas>
+    <div class="hava" id="hava">🌧️ Yağmur: yavaşla</div>
+    <div class="hizcip" id="hizcip">📍 Hız kontrolü…</div>
+    <div class="avantaj" id="avantaj"><div class="rozet">💜</div><div><b id="avantajYazi"></b><span id="avantajTasarruf"></span></div></div>
+  </div>
+  <div class="durum" id="durum"></div>
+  <div class="alt">
+    <div class="baslik"><span>Yeni siparişler</span><span id="tasimaSay">Üzerinde: 0/2</span></div>
+    <div class="liste" id="yeni"></div>
+    <div class="baslik"><span>Aldığın işler</span></div>
+    <div class="liste" id="aktif"></div>
+    <div class="ipucu" id="ipucu">Bir sipariş al, sonra haritada işletmeye dokun.</div>
+  </div>
+</div>
+
+<!-- Başlangıç -->
+<div class="katman" id="giris">
+  <div class="kutu">
+    <div class="ikon">🛵</div>
+    <h2>Kurye Vardiyası</h2>
+    <p>2,5 dakikalık vardiyada en çok puanı topla. Haftalık Türkiye sıralamasına gir.</p>
+    <ul class="kurallar">
+      <li>Siparişi al, haritada işletmeye dokun. Paket geç hazırlanabilir: beklemek mi, başka iş almak mı, sen seç.</li>
+      <li>Paketi alınca teslim adresine dokun. Zamanında teslim et, bonus kazan.</li>
+      <li>🏢 Sitelerde güvenliğe <b>Kurye ID</b>'ni göster, kaskını çıkarmadan geç.</li>
+      <li>⛽ Yakıt azalınca anlaşmalı istasyona, 💪 enerjin düşünce markete, 🔧 lastik patlarsa anlaşmalı servise uğra. Kurye Club üyeliğinle hepsi indirimli.</li>
+    </ul>
+    <button class="ana" id="duruyorum">Şu an duruyorum, başla</button>
+    <p style="margin:10px 0 0;font-size:12px">Araç kullanırken oyun kendiliğinden durur. Konum sadece hızını ölçmek için telefonunda kullanılır, kaydedilmez.</p>
+    <button class="dene" id="kilitDene">Hız kilidini dene (20 km/s gibi davran)</button>
+  </div>
+</div>
+
+<!-- Güvenlik kapısı -->
+<div class="katman" id="kapiKatman" hidden>
+  <div class="kutu kapi" id="kapi">
+    <div class="ikon">🏢</div>
+    <h2 id="kapiBaslik">Site girişi</h2>
+    <p>Güvenlik görevlisi kimlik istiyor.</p>
+    <div class="kart-id">
+      <div class="tara"></div>
+      <div style="font-size:11px;font-weight:700;color:#4834D4;letter-spacing:1px">KURYE CLUB</div>
+      <div class="ad">🛵 Sen</div>
+      <div style="font-size:12px;color:#16A34A;font-weight:700">✔ Kimliği doğrulandı</div>
+      <div class="kod">KC7HX4QP</div>
+    </div>
+    <div class="kayit" id="kapiKayit"></div>
+    <button class="ana" id="idGoster">Kurye ID'mi göster</button>
+    <button class="ikincil" id="kaskCikar">Kaskı çıkar, kimliğini ver (yavaş)</button>
+  </div>
+</div>
+
+<!-- Hız kilidi -->
+<div class="katman" id="kilitKatman" hidden>
+  <div class="kutu kilit">
+    <div class="ikon">🛑</div>
+    <h2>Hareket halindesin</h2>
+    <p>Oyun durduruldu. Güvenli bir yerde dur; 30 saniye kesintisiz durunca kaldığın yerden devam edersin.</p>
+    <div class="hiz"><span id="kilitHiz">0</span> <small>km/s</small></div>
+    <div class="bekle"><i id="kilitBar"></i></div>
+    <small class="not" id="kilitNot">Durman bekleniyor…</small>
+  </div>
+</div>
+
+<!-- Sonuç -->
+<div class="katman" id="sonuc" hidden>
+  <div class="kutu">
+    <div class="ikon">🏁</div>
+    <h2>Vardiya bitti</h2>
+    <p id="sonucAlt">Güzel iş çıkardın.</p>
+    <div id="sonucDetay"></div>
+    <div class="sira" id="sira"></div>
+    <button class="ana" id="tekrar">Yeni vardiya</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---------- Ayarlar ----------
+  var SURE = 150;                 // vardiya (sn)
+  var NX = 6, NY = 7;             // kavşak ızgarası
+  var HIZ = 0.42, YAGMUR_HIZ = 0.62, BOS_DEPO_HIZ = 1.3; // hücre başı saniye
+  var YAKIT_HUCRE = 2.2;          // hücre başı yakıt
+  var MAX_TASIMA = 2;
+
+  // ---------- Admin paneline oyun olayları ----------
+  // Uygulama oyunu ?kid=KURYEID ile açar. ID yoksa (tarayıcıda deneme) hiçbir şey gönderilmez.
+  var OLAY_ADRESI = 'https://europe-west1-kurye-avantaj-platformu-zhwg6b.cloudfunctions.net/oyunOlay';
+  var KID = '';
+  try { KID = (new URLSearchParams(location.search).get('kid') || '').trim(); } catch(e) {}
+  function olayGonder(olay, veri){
+    if(!KID) return;
+    try {
+      fetch(OLAY_ADRESI, { method:'POST', keepalive:true, headers:{'Content-Type':'text/plain'},
+        body: JSON.stringify({ kid:KID, oyun:'vardiya', olay:olay, veri:veri||{} }) }).catch(function(){});
+    } catch(e) {}
+  }
+  var baslangicZ = 0;
+  olayGonder('oyun_acildi', {});
+
+  var canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
+  var $ = function(id){ return document.getElementById(id); };
+
+  // ---------- Harita ----------
+  var yerler = [
+    {id:'r1', tip:'isletme', ikon:'🍔', ad:'Burger Durağı', x:0, y:1, yemek:true},
+    {id:'r2', tip:'isletme', ikon:'🍕', ad:'Pizza Fırını', x:4, y:0, yemek:true},
+    {id:'k1', tip:'isletme', ikon:'☕', ad:'Köşe Kafe', x:2, y:3, yemek:true},
+    {id:'m1', tip:'isletme', ikon:'🛒', ad:'Mahalle Market', x:5, y:4, yemek:false},
+    {id:'e1', tip:'isletme', ikon:'💊', ad:'Merkez Eczane', x:1, y:5, yemek:false},
+    {id:'h1', tip:'ev', ikon:'🏠', ad:'Lale Sk. 4', x:5, y:1},
+    {id:'h2', tip:'ev', ikon:'🏠', ad:'Gül Apt.', x:0, y:4},
+    {id:'h3', tip:'ev', ikon:'🏠', ad:'Çınar Sk. 12', x:3, y:6},
+    {id:'h4', tip:'ev', ikon:'🏠', ad:'Defne Apt.', x:2, y:0},
+    {id:'s1', tip:'site', ikon:'🏢', ad:'Mavi Kule Sitesi', x:5, y:6},
+    {id:'s2', tip:'site', ikon:'🏢', ad:'Park Evleri', x:3, y:2},
+    {id:'s3', tip:'site', ikon:'🏢', ad:'Yeşilvadi Sitesi', x:0, y:6},
+    {id:'ist', tip:'istasyon', ikon:'⛽', ad:'Anlaşmalı istasyon', x:4, y:3},
+    {id:'srv', tip:'servis', ikon:'🔧', ad:'Anlaşmalı servis', x:1, y:2}
+  ];
+  var isletmeler = yerler.filter(function(y){return y.tip==='isletme'});
+  var adresler = yerler.filter(function(y){return y.tip==='ev'||y.tip==='site'});
+  function yerBul(x,y){ for(var i=0;i<yerler.length;i++){ if(yerler[i].x===x&&yerler[i].y===y) return yerler[i]; } return null; }
+  function yerId(id){ for(var i=0;i<yerler.length;i++){ if(yerler[i].id===id) return yerler[i]; } return null; }
+
+  // ---------- Durum ----------
+  var S;
+  function sifirla(){
+    S = {
+      t:0, bitti:false, calisiyor:false, puan:0, yakit:100, enerji:100, lastik:false, lastikOlduMu:false,
+      tasarruf:0, avantajlar:{yakit:0, market:0, servis:0},
+      kur:{x:2, y:4, px:2, py:4},  // kurye: kavşak ve çizim konumu
+      yol:[], adimT:0,             // hareket
+      yeni:[], aktif:[], sayac:1, sonSiparis:-6,
+      kapali:{}, kapaliBitis:0, yagmur:0, yagmurBitis:0, sonOlay:0,
+      kapida:null, istasyonda:false,
+      ist:{teslim:0, zamaninda:0, gec:0, idIle:0, kaskla:0, kazanilan:0, yakitAlindi:0}
+    };
+  }
+
+  // ---------- Yollar ve yol bulma ----------
+  function kenarAnahtar(a,b){ return a.x<b.x||(a.x===b.x&&a.y<b.y) ? a.x+','+a.y+'-'+b.x+','+b.y : b.x+','+b.y+'-'+a.x+','+a.y; }
+  function yolBul(bas, hedef){
+    var q=[bas], gel={}; gel[bas.x+','+bas.y]=null;
+    while(q.length){
+      var c=q.shift();
+      if(c.x===hedef.x&&c.y===hedef.y){
+        var p=[], k=c.x+','+c.y; while(k){ var xy=k.split(','); p.unshift({x:+xy[0],y:+xy[1]}); k=gel[k]; }
+        p.shift(); return p;
+      }
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
+        var n={x:c.x+d[0],y:c.y+d[1]};
+        if(n.x<0||n.y<0||n.x>=NX||n.y>=NY) return;
+        var k=n.x+','+n.y; if(k in gel) return;
+        if(S.kapali[kenarAnahtar(c,n)]) return;
+        gel[k]=c.x+','+c.y; q.push(n);
+      });
+    }
+    return null;
+  }
+
+  // ---------- Siparişler ----------
+  function rasgele(a,b){ return a+Math.random()*(b-a); }
+  function sec(d){ return d[Math.floor(Math.random()*d.length)]; }
+  function siparisUret(){
+    var is = sec(isletmeler), adr = sec(adresler);
+    var mesafe = Math.abs(is.x-adr.x)+Math.abs(is.y-adr.y);
+    var tahmin = Math.round(rasgele(4,10));
+    // Gerçek hayattaki gibi: bazen erken, bazen geç hazırlanır
+    var sapma = Math.random()<0.35 ? Math.round(rasgele(4,9)) : (Math.random()<0.3 ? -Math.round(rasgele(1,3)) : 0);
+    var odul = Math.round(20 + mesafe*4 + (adr.tip==='site'?6:0));
+    S.yeni.push({
+      no:S.sayac++, isletme:is.id, adres:adr.id, odul:odul,
+      tahmin:tahmin, hazirlik:Math.max(2, tahmin+sapma),
+      kabulBitis:S.t+18, durum:'yeni', kabulT:0, hazirT:0, alT:0,
+      sureSiniri: 0, mesafe:mesafe
+    });
+  }
+  function kabulEt(no){
+    if(S.aktif.length>=MAX_TASIMA){ durumYaz('En fazla '+MAX_TASIMA+' iş taşıyabilirsin. Önce birini teslim et.'); return; }
+    var i=S.yeni.findIndex(function(o){return o.no===no}); if(i<0) return;
+    var o=S.yeni.splice(i,1)[0];
+    o.durum='kabul'; o.kabulT=S.t; o.hazirT=S.t+o.hazirlik;
+    // Teslim süresi: hazırlık tahmini + mesafeye göre makul süre
+    o.sureSiniri = S.t + o.tahmin + 10 + o.mesafe*1.6 + Math.abs(S.kur.x-yerId(o.isletme).x)*0.6 + Math.abs(S.kur.y-yerId(o.isletme).y)*0.6;
+    S.aktif.push(o);
+    durumYaz(yerId(o.isletme).ikon+' '+yerId(o.isletme).ad+' siparişini aldın. Haritada işletmeye dokun.');
+    ciz(); listeleriGuncelle();
+  }
+
+  // ---------- Hareket ----------
+  function git(x,y){
+    if(!S.calisiyor||S.kapida) return;
+    if(S.kur.x===x&&S.kur.y===y){ vardin(); return; }
+    var p=yolBul({x:S.kur.x,y:S.kur.y},{x:x,y:y});
+    if(!p){ durumYaz('🚧 Bu adrese giden yol kapalı. Biraz bekle ya da başka yoldan dene.'); return; }
+    S.yol=p; S.adimT=0; S.istasyonda=false;
+    var hedef=yerBul(x,y);
+    durumYaz(hedef? 'Yola çıktın: '+hedef.ikon+' '+hedef.ad : 'Yola çıktın.');
+  }
+  function adimSuresi(){
+    if(S.yakit<=0) return BOS_DEPO_HIZ;
+    var h = S.yagmur ? YAGMUR_HIZ : HIZ;
+    if(S.lastik) h*=1.7;
+    if(S.enerji<25) h*=1.3;
+    return h;
+  }
+  function vardin(){
+    var y=yerBul(S.kur.x,S.kur.y); if(!y) { durumYaz(''); return; }
+    if(y.tip==='istasyon'){ yakitAl(); return; }
+    if(y.tip==='servis'){ servis(); return; }
+    // Teslimat
+    var tes=S.aktif.filter(function(o){return o.durum==='alindi'&&o.adres===y.id});
+    if(tes.length){
+      if(y.tip==='site'){ kapiAc(tes); return; }
+      tes.forEach(teslimEt); return;
+    }
+    // Alım
+    var al=S.aktif.filter(function(o){return o.durum==='kabul'&&o.isletme===y.id});
+    if(al.length){ alimKontrol(); return; }
+    if(y.id==='m1'){ mola(); return; }
+    durumYaz(y.ikon+' '+y.ad+': burada işin yok.');
+  }
+  function alimKontrol(){
+    var y=yerBul(S.kur.x,S.kur.y); if(!y||S.yol.length) return;
+    S.aktif.forEach(function(o){
+      if(o.durum==='kabul'&&o.isletme===y.id){
+        if(S.t>=o.hazirT){
+          o.durum='alindi'; o.alT=S.t;
+          durumYaz('📦 Paketi aldın. Teslim adresine dokun: '+yerId(o.adres).ikon+' '+yerId(o.adres).ad);
+        } else {
+          durumYaz('⏳ Paket hazırlanıyor, '+Math.ceil(o.hazirT-S.t)+' sn kaldı. Beklemek ya da başka iş almak senin elinde.');
+        }
+      }
+    });
+    listeleriGuncelle();
+  }
+  function yakitAl(){
+    if(S.yakit>=96){ durumYaz('⛽ Depo zaten dolu.'); return; }
+    S.istasyonda=true; S.ist.yakitAlindi++; S.yakitDolum=100-S.yakit;
+    durumYaz('⛽ Anlaşmalı istasyonda %4 indirimle yakıt alıyorsun…');
+  }
+
+  // Kurye Club avantaj anı: kurye üyeliği sayesinde indirimli alır
+  function avantajAni(metin, tl, tur){
+    S.tasarruf+=tl; S.avantajlar[tur]++;
+    $('avantajYazi').textContent=metin;
+    $('avantajTasarruf').textContent='Kurye Club ile '+tl+' ₺ tasarruf ettin';
+    var a=$('avantaj'); a.classList.add('goster');
+    clearTimeout(avantajAni.z); avantajAni.z=setTimeout(function(){a.classList.remove('goster')},3200);
+  }
+  function mola(){
+    if(S.enerji>=85){ durumYaz('🛒 Enerjin yerinde, markete şimdilik gerek yok.'); return; }
+    S.enerji=Math.min(100,S.enerji+65); S.t+=2;
+    avantajAni('"Kurye Club üyeliğim sayesinde suyumu ve atıştırmalığımı %10 indirimli aldım."', 6, 'market');
+    durumYaz('🛒 Kısa bir mola verdin. Enerjin yerine geldi.');
+  }
+  function servis(){
+    if(!S.lastik){ durumYaz('🔧 Motorun sağlam, servise gerek yok.'); return; }
+    S.lastik=false; S.t+=4;
+    avantajAni('"Kurye Club üyeliğim sayesinde lastiğimi anlaşmalı serviste %15 indirimle yaptırdım."', 45, 'servis');
+    durumYaz('🔧 Lastik değişti, hızın normale döndü.');
+  }
+
+  // ---------- Güvenlik kapısı ----------
+  function kapiAc(tes){
+    S.kapida={siparisler:tes, bekle:0};
+    $('kapiBaslik').textContent=yerId(tes[0].adres).ad;
+    $('kapiKayit').textContent='';
+    $('kapi').classList.remove('taraniyor');
+    $('idGoster').disabled=false; $('kaskCikar').disabled=false;
+    $('kapiKatman').hidden=false;
+  }
+  function kapiGec(idIle){
+    if(!S.kapida) return;
+    $('idGoster').disabled=true; $('kaskCikar').disabled=true;
+    var tes=S.kapida.siparisler;
+    if(idIle){
+      $('kapi').classList.add('taraniyor');
+      var d=new Date();
+      setTimeout(function(){
+        $('kapiKayit').textContent='✔ Görevli okuttu · Giriş kaydedildi '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+      },700);
+      setTimeout(function(){ kapiKapat(tes,true); },1500);
+    } else {
+      $('kapiKayit').textContent='Kask çıkarılıyor, kimlik kontrol ediliyor…';
+      S.kapida.bekle=6; // oyun süresinden 6 sn gider
+      setTimeout(function(){ kapiKapat(tes,false); },1600);
+    }
+  }
+  function kapiKapat(tes,idIle){
+    $('kapiKatman').hidden=true;
+    var bekle=S.kapida?S.kapida.bekle:0;
+    S.kapida=null;
+    S.t+=bekle;
+    if(idIle){ S.ist.idIle++; puanEkle(8,'Kask çıkarmadan geçtin +8'); } else { S.ist.kaskla++; }
+    tes.forEach(teslimEt);
+  }
+
+  // ---------- Teslimat ve puan ----------
+  function teslimEt(o){
+    var i=S.aktif.indexOf(o); if(i<0) return;
+    S.aktif.splice(i,1);
+    var gecikme=S.t-o.sureSiniri, puan=o.odul, not=[];
+    if(gecikme<=0){ puan+=Math.round(o.odul*0.5); not.push('zamanında'); S.ist.zamaninda++; }
+    else { puan=Math.round(o.odul*(gecikme>15?0.3:0.6)); not.push(Math.round(gecikme)+' sn geç'); S.ist.gec++; }
+    var is=yerId(o.isletme);
+    if(is.yemek&&S.t-o.alT<=14){ puan+=10; not.push('sıcak teslim'); }
+    var yildiz=gecikme<=0?5:(gecikme<=8?4:(gecikme<=15?3:2));
+    if(yildiz===5&&Math.random()<0.45){ var b=5*Math.ceil(rasgele(1,3)); puan+=b; not.push('bahşiş +'+b); }
+    S.ist.teslim++;
+    puanEkle(puan, '+'+puan);
+    durumYaz('✅ Teslim edildi ('+'★'.repeat(yildiz)+') · '+not.join(', '));
+    listeleriGuncelle();
+  }
+  function puanEkle(p,yazi){
+    S.puan+=p; S.ist.kazanilan+=p; $('puan').textContent=S.puan;
+    var r=canvas.getBoundingClientRect(), hc=hucre();
+    var el=document.createElement('div'); el.className='puanuc'; el.textContent=yazi;
+    el.style.color='#22C55E';
+    el.style.left=(r.left+ox()+S.kur.px*hc-20)+'px'; el.style.top=(r.top+oy()+S.kur.py*hc-30)+'px';
+    document.body.appendChild(el); setTimeout(function(){el.remove()},1150);
+  }
+
+  // ---------- Olaylar ----------
+  function olaylar(){
+    if(S.t-S.sonOlay<14) return;
+    S.sonOlay=S.t;
+    if(!S.lastikOlduMu&&S.t>35&&Math.random()<0.35){ S.lastik=true; S.lastikOlduMu=true; durumYaz('🔧 Lastik patladı! Hızın düştü. Anlaşmalı servise uğra.'); return; }
+    if(Math.random()<0.45&&!S.yagmur){ S.yagmur=1; S.yagmurBitis=S.t+rasgele(12,20); $('hava').style.display='block'; durumYaz('🌧️ Yağmur başladı, yavaşla.'); return; }
+    if(Math.random()<0.6&&Object.keys(S.kapali).length===0){
+      for(var d=0; d<20; d++){
+        var a={x:Math.floor(rasgele(0,NX)), y:Math.floor(rasgele(0,NY))};
+        var yon=Math.random()<.5?[1,0]:[0,1]; var b={x:a.x+yon[0], y:a.y+yon[1]};
+        if(b.x>=NX||b.y>=NY) continue;
+        S.kapali[kenarAnahtar(a,b)]=true; S.kapaliBitis=S.t+rasgele(14,22);
+        durumYaz('🚧 Bir sokak yol çalışması nedeniyle kapandı.'); break;
+      }
+    }
+  }
+
+  // ---------- Döngü ----------
+  var son=0;
+  function dongu(zaman){
+    if(!S.calisiyor){ return; }
+    var dt=Math.min(0.1,(zaman-son)/1000||0); son=zaman;
+    hizKontrol(dt);
+    if(!S.kapida && !HZ.kilit){
+      S.t+=dt;
+      // Hareket
+      if(S.yol.length){
+        S.adimT+=dt; var sure=adimSuresi(), h=S.yol[0];
+        var oran=Math.min(1,S.adimT/sure);
+        S.kur.px=S.kur.x+(h.x-S.kur.x)*oran; S.kur.py=S.kur.y+(h.y-S.kur.y)*oran;
+        if(oran>=1){
+          S.kur.x=h.x; S.kur.y=h.y; S.yol.shift(); S.adimT=0;
+          S.yakit=Math.max(0,S.yakit-YAKIT_HUCRE);
+          if(S.yakit<=0) durumYaz('⛽ Yakıtın bitti, motoru itiyorsun. En yakın istasyona git.');
+          if(!S.yol.length) vardin();
+        }
+      } else { S.kur.px=S.kur.x; S.kur.py=S.kur.y; }
+      // Enerji zamanla düşer
+      var once=S.enerji; S.enerji=Math.max(0,S.enerji-dt*0.55);
+      if(once>=25&&S.enerji<25) durumYaz('💪 Yoruldun, yavaşladın. 🛒 Markette kısa bir mola ver.');
+      // İstasyonda yakıt
+      if(S.istasyonda&&!S.yol.length){
+        S.yakit=Math.min(100,S.yakit+dt*40);
+        if(S.yakit>=100){
+          S.istasyonda=false;
+          var tl=Math.max(4,Math.round(S.yakitDolum*0.6));
+          avantajAni('"Kurye Club üyeliğim sayesinde yakıtı %4 indirimli aldım."', tl, 'yakit');
+          durumYaz('⛽ Depo doldu. Yola devam.');
+        }
+      }
+      // İşletmede bekliyorsa paket hazır olunca otomatik al
+      if(!S.yol.length) S.aktif.forEach(function(o){
+        var y=yerBul(S.kur.x,S.kur.y);
+        if(y&&o.durum==='kabul'&&o.isletme===y.id&&S.t>=o.hazirT) alimKontrol();
+      });
+      // Siparişler
+      if(S.t-S.sonSiparis>7.5 && S.yeni.length<3){ siparisUret(); S.sonSiparis=S.t; }
+      S.yeni=S.yeni.filter(function(o){return o.kabulBitis>S.t});
+      // Olaylar
+      if(S.yagmur&&S.t>S.yagmurBitis){ S.yagmur=0; $('hava').style.display='none'; }
+      if(Object.keys(S.kapali).length&&S.t>S.kapaliBitis){ S.kapali={}; }
+      olaylar();
+      if(S.t>=SURE){ bitir(); return; }
+    }
+    hud(); ciz();
+    if(Math.floor(S.t)!==Math.floor(S.t-dt)) listeleriGuncelle();
+    requestAnimationFrame(dongu);
+  }
+
+  // ---------- Çizim ----------
+  var W=0,H=0,DPR=1;
+  function boyutla(){
+    var kutu=$('haritaKutu'), w=kutu.clientWidth;
+    // Harita, siparişlere yer kalacak kadar büyür (uygulama içi küçük ekranlar için)
+    var ust=document.querySelector('.hud').offsetHeight + $('durum').offsetHeight + 16;
+    var alttaGereken=300;
+    var h=Math.min(w*1.1, Math.max(200, window.innerHeight-ust-alttaGereken));
+    DPR=window.devicePixelRatio||1; W=w; H=h;
+    canvas.width=w*DPR; canvas.height=h*DPR; canvas.style.height=h+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0); ciz();
+  }
+  function hucre(){ return Math.min(W/NX,(H-16)/NY); }
+  function ox(){ return (W-hucre()*(NX-1))/2; }
+  function oy(){ return (H-hucre()*(NY-1))/2+8; }
+  function ciz(){
+    if(!W) return;
+    var hc=hucre(), x0=ox(), y0=oy();
+    ctx.fillStyle='#2A2D3A'; ctx.fillRect(0,0,W,H);
+    // Bloklar
+    for(var i=0;i<NX-1;i++) for(var j=0;j<NY-1;j++){
+      var renk=((i*7+j*3)%5===0)?'#2F5D46':((i+j)%2?'#3B4058':'#434862');
+      ctx.fillStyle=renk;
+      var p=hc*0.16; rr(x0+i*hc+p, y0+j*hc+p, hc-2*p, hc-2*p, 8); ctx.fill();
+    }
+    // Yollar (şerit çizgileri)
+    ctx.strokeStyle='rgba(244,197,66,.35)'; ctx.lineWidth=1.5; ctx.setLineDash([6,8]);
+    for(var x=0;x<NX;x++){ ctx.beginPath(); ctx.moveTo(x0+x*hc,y0); ctx.lineTo(x0+x*hc,y0+(NY-1)*hc); ctx.stroke(); }
+    for(var y=0;y<NY;y++){ ctx.beginPath(); ctx.moveTo(x0,y0+y*hc); ctx.lineTo(x0+(NX-1)*hc,y0+y*hc); ctx.stroke(); }
+    ctx.setLineDash([]);
+    // Kapalı yollar
+    Object.keys(S.kapali).forEach(function(k){
+      var ab=k.split('-'), a=ab[0].split(','), b=ab[1].split(',');
+      var mx=x0+(+a[0]+ +b[0])/2*hc, my=y0+(+a[1]+ +b[1])/2*hc;
+      ctx.font=(hc*0.42)+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🚧',mx,my);
+    });
+    // Planlanan rota
+    if(S.yol.length){
+      ctx.strokeStyle='#8B7CFF'; ctx.lineWidth=4; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(x0+S.kur.px*hc,y0+S.kur.py*hc);
+      S.yol.forEach(function(n){ ctx.lineTo(x0+n.x*hc,y0+n.y*hc); }); ctx.stroke();
+    }
+    // Yerler
+    var hedefler={};
+    if(S.lastik) hedefler['srv']='ihtiyac';
+    if(S.enerji<25) hedefler['m1']='ihtiyac';
+    if(S.yakit<25) hedefler['ist']='ihtiyac';
+    S.aktif.forEach(function(o){ hedefler[o.durum==='kabul'?o.isletme:o.adres]=o.durum; });
+    yerler.forEach(function(yr){
+      var cx=x0+yr.x*hc, cy=y0+yr.y*hc, r=hc*0.34;
+      var vurgu=hedefler[yr.id];
+      if(vurgu){
+        ctx.beginPath(); ctx.arc(cx,cy,r+5+Math.sin(S.t*6)*2,0,Math.PI*2);
+        ctx.fillStyle=vurgu==='kabul'?'rgba(244,197,66,.45)':(vurgu==='ihtiyac'?'rgba(139,124,255,.55)':'rgba(34,197,94,.45)'); ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+      ctx.fillStyle=(yr.tip==='istasyon'||yr.tip==='servis')?'#FFEDD5':(yr.tip==='isletme'?'#FFFFFF':'#E0E7FF'); ctx.fill();
+      ctx.font=(r*1.15)+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(yr.ikon,cx,cy+1);
+      // Hazırlanıyor göstergesi
+      S.aktif.forEach(function(o){
+        if(o.durum==='kabul'&&o.isletme===yr.id){
+          var kalan=o.hazirT-S.t;
+          ctx.font='bold '+(hc*0.24)+'px Rubik, sans-serif'; ctx.fillStyle=kalan>0?'#F4C542':'#22C55E';
+          ctx.fillText(kalan>0?Math.ceil(kalan)+'sn':'HAZIR',cx,cy-r-9);
+        }
+      });
+    });
+    // Kurye
+    var kx=x0+S.kur.px*hc, ky=y0+S.kur.py*hc;
+    ctx.beginPath(); ctx.arc(kx,ky,hc*0.3,0,Math.PI*2); ctx.fillStyle='#4834D4'; ctx.fill();
+    ctx.lineWidth=3; ctx.strokeStyle='#fff'; ctx.stroke();
+    ctx.font=(hc*0.36)+'px serif'; ctx.fillText('🛵',kx,ky+1);
+    if(S.yagmur){ ctx.fillStyle='rgba(120,160,255,.10)'; ctx.fillRect(0,0,W,H); }
+  }
+  function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+  // Haritaya dokunma: en yakın kavşağa git
+  canvas.addEventListener('pointerdown',function(e){
+    var r=canvas.getBoundingClientRect(), hc=hucre();
+    var gx=Math.round((e.clientX-r.left-ox())/hc), gy=Math.round((e.clientY-r.top-oy())/hc);
+    if(gx<0||gy<0||gx>=NX||gy>=NY) return;
+    git(gx,gy);
+  });
+
+  // ---------- Arayüz ----------
+  function hud(){
+    var kalan=Math.max(0,SURE-S.t);
+    $('sureYazi').textContent=Math.floor(kalan/60)+':'+String(Math.floor(kalan%60)).padStart(2,'0');
+    $('sureBar').style.width=(kalan/SURE*100)+'%';
+    $('yakitYazi').textContent=Math.round(S.yakit);
+    $('yakitBar').style.width=S.yakit+'%';
+    $('yakitKutu').classList.toggle('az',S.yakit<25);
+    $('enerjiYazi').textContent=Math.round(S.enerji);
+    $('enerjiBar').style.width=S.enerji+'%';
+    $('enerjiKutu').classList.toggle('az',S.enerji<25);
+    $('tasimaSay').textContent='Üzerinde: '+S.aktif.length+'/'+MAX_TASIMA;
+  }
+  function durumYaz(m){ $('durum').textContent=m; clearTimeout(durumYaz.z); if(m) durumYaz.z=setTimeout(function(){ if($('durum').textContent===m) $('durum').textContent=''; },4500); }
+  function listeleriGuncelle(){
+    var y=$('yeni');
+    var yHtml = S.yeni.length ? S.yeni.map(function(o){
+      var is=yerId(o.isletme), ad=yerId(o.adres), kalan=Math.max(0,o.kabulBitis-S.t);
+      return '<div class="kart" data-al="'+o.no+'">'+
+        '<div class="ust"><b>'+is.ikon+'</b>'+is.ad+'</div>'+
+        '<div class="bilgi">→ '+ad.ikon+' '+ad.ad+'<br>Hazırlık ~'+o.tahmin+' sn</div>'+
+        '<div class="alt-satir"><span class="odul">'+o.odul+' p</span><button data-al="'+o.no+'">Al</button></div>'+
+        '<div class="sayac"><i style="width:'+(kalan/18*100)+'%"></i></div></div>';
+    }).join('') : '<div class="bos">Yeni sipariş bekleniyor…</div>';
+    if(y.innerHTML!==yHtml) y.innerHTML=yHtml;
+    var a=$('aktif');
+    var aHtml = S.aktif.length ? S.aktif.map(function(o){
+      var is=yerId(o.isletme), ad=yerId(o.adres), etiket;
+      if(o.durum==='kabul'){
+        var k=o.hazirT-S.t;
+        etiket = k>0 ? '<span class="etiket">Hazırlanıyor '+Math.ceil(k)+' sn</span>' : '<span class="etiket hazir">Paket hazır</span>';
+      } else {
+        var kalan=o.sureSiniri-S.t;
+        etiket = kalan>=0 ? '<span class="etiket hazir">Teslime '+Math.ceil(kalan)+' sn</span>' : '<span class="etiket gec">'+Math.ceil(-kalan)+' sn geç</span>';
+      }
+      var hedef = o.durum==='kabul' ? is : ad;
+      return '<div class="kart tasiniyor" data-git="'+hedef.x+','+hedef.y+'">'+
+        '<div class="ust"><b>'+(o.durum==='kabul'?is.ikon:'📦')+'</b>'+(o.durum==='kabul'?is.ad:ad.ad)+'</div>'+
+        '<div class="bilgi">'+(o.durum==='kabul'?'Paketi al':'Teslim et: '+ad.ikon+' '+(ad.tip==='site'?'site (güvenlik var)':'ev'))+'</div>'+
+        '<div class="alt-satir">'+etiket+'<button data-git="'+hedef.x+','+hedef.y+'">Git</button></div></div>';
+    }).join('') : '<div class="bos">Henüz iş almadın.</div>';
+    if(a.innerHTML!==aHtml) a.innerHTML=aHtml;
+    $('ipucu').textContent = S.aktif.length ? 'Haritada parlayan yere ya da karttaki "Git"e dokun.' : 'Bir sipariş al, sonra haritada işletmeye dokun.';
+  }
+  $('yeni').addEventListener('pointerdown',function(e){ var t=e.target.closest('[data-al]'); if(t) kabulEt(+t.getAttribute('data-al')); });
+  $('aktif').addEventListener('pointerdown',function(e){ var t=e.target.closest('[data-git]'); if(t){ var xy=t.getAttribute('data-git').split(','); git(+xy[0],+xy[1]); } });
+  $('idGoster').onclick=function(){ kapiGec(true); };
+  $('kaskCikar').onclick=function(){ kapiGec(false); };
+
+  // ---------- Hız kontrolü (telefonda, kaydedilmez) ----------
+  var HAREKET_ESIK = 3.2;   // m/sn (~11.5 km/s) üstü: hareket halinde
+  var DURUS_ESIK = 2.5;     // m/sn (~9 km/s) altı: duruyor / yürüyor
+  var DURUS_SURE = 30;      // kilidin açılması için kesintisiz duruş (sn)
+  var HZ = {izle:null, son:null, okumalar:[], hiz:null, kilit:false, durusBas:null, izin:'bekliyor', deneBitis:0};
+
+  function mesafe(a,b){ // metre
+    var R=6371000, r=Math.PI/180, dLat=(b.lat-a.lat)*r, dLon=(b.lon-a.lon)*r;
+    var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLon/2)*Math.sin(dLon/2);
+    return 2*R*Math.asin(Math.sqrt(x));
+  }
+  function konum(p){
+    HZ.izin='var';
+    var c=p.coords; if(c.accuracy>30) return;          // zayıf sinyali yok say
+    var simdi={lat:c.latitude, lon:c.longitude, t:p.timestamp};
+    var v = (typeof c.speed==='number' && !isNaN(c.speed)) ? c.speed : null;
+    if(v===null && HZ.son){ var dt=(simdi.t-HZ.son.t)/1000; if(dt>=1) v=mesafe(HZ.son,simdi)/dt; }
+    HZ.son=simdi;
+    if(v===null) return;
+    HZ.okumalar.push(v); if(HZ.okumalar.length>3) HZ.okumalar.shift();
+    var sirali=HZ.okumalar.slice().sort(function(a,b){return a-b});
+    HZ.hiz=sirali[Math.floor(sirali.length/2)];           // titremeye karşı ortanca
+  }
+  function hizBaslat(){
+    if(HZ.izle!==null || !navigator.geolocation){ if(!navigator.geolocation) HZ.izin='yok'; return; }
+    try{
+      HZ.izle=navigator.geolocation.watchPosition(konum,function(){ HZ.izin='yok'; },
+        {enableHighAccuracy:true, maximumAge:1000, timeout:15000});
+    }catch(e){ HZ.izin='yok'; }
+  }
+  function guncelHiz(){ // deneme: başladıktan 3-8 sn sonra ~20 km/s, sonra duruyor
+    if(HZ.deneBitis){
+      var g=(performance.now()-HZ.deneBitis)/1000;
+      if(g>=3 && g<8) return 5.6;
+      if(g>=8) return 0;
+    }
+    return HZ.hiz;
+  }
+  function hizKontrol(dt){
+    var v=guncelHiz();
+    var kmh = v===null ? null : Math.round(v*3.6);
+    $('hizcip').textContent = HZ.izin==='yok' && !HZ.deneBitis ? '📍 Hız kontrolü kapalı' :
+      (kmh===null ? '📍 Hız ölçülüyor…' : (v>=DURUS_ESIK&&(HZ.kilit||v>=HAREKET_ESIK) ? '🔴 '+kmh+' km/s' : (HZ.kilit ? '🟡 Durdun, bekleniyor' : '🟢 Duruyorsun')));
+    if(v===null) return;
+    if(!HZ.kilit && v>=HAREKET_ESIK){ HZ.kilit=true; HZ.durusBas=null; $('kilitKatman').hidden=false; }
+    if(HZ.kilit){
+      $('kilitHiz').textContent=kmh;
+      if(v<DURUS_ESIK){
+        if(HZ.durusBas===null) HZ.durusBas=performance.now();
+        var gecen=(performance.now()-HZ.durusBas)/1000;
+        $('kilitBar').style.width=Math.min(100,gecen/DURUS_SURE*100)+'%';
+        $('kilitNot').textContent='Duruyorsun. '+Math.max(0,Math.ceil(DURUS_SURE-gecen))+' sn sonra devam.';
+        if(gecen>=DURUS_SURE){ HZ.kilit=false; $('kilitKatman').hidden=true; durumYaz('Devam ediyorsun. Güvenli sürüşler!'); }
+      } else {
+        HZ.durusBas=null; $('kilitBar').style.width='0%'; $('kilitNot').textContent='Durman bekleniyor…';
+      }
+    }
+  }
+  $('kilitDene').onclick=function(){ HZ.denemeIste=true; basla(); };
+
+  // ---------- Başla / bitir ----------
+  function basla(){
+    if(!HZ.denemeIste) HZ.deneBitis=0;
+    sifirla(); $('puan').textContent='0'; $('hava').style.display='none';
+    $('giris').hidden=true; $('sonuc').hidden=true;
+    S.calisiyor=true; son=performance.now();
+    hizBaslat(); HZ.kilit=false; $('kilitKatman').hidden=true;
+    if(HZ.denemeIste){ HZ.denemeIste=false; HZ.deneBitis=performance.now(); durumYaz('Deneme: 3 saniye sonra 20 km/s ile gidiyormuş gibi davranacak, sonra duracak.'); }
+    siparisUret(); S.sonSiparis=0; listeleriGuncelle(); hud(); boyutla();
+    durumYaz('Vardiya başladı. İlk siparişini al!');
+    baslangicZ = Date.now(); olayGonder('vardiya_basladi', {});
+    requestAnimationFrame(dongu);
+  }
+  function bitir(){
+    S.calisiyor=false; S.bitti=true; HZ.kilit=false; $('kilitKatman').hidden=true;
+    var en=0; try{ en=+localStorage.getItem('kc-vardiya-en')||0; }catch(e){}
+    var rekor=S.puan>en; if(rekor){ try{ localStorage.setItem('kc-vardiya-en',S.puan); }catch(e){} en=S.puan; }
+    olayGonder('vardiya_bitti', {
+      puan:S.puan, teslim:S.ist.teslim, zamaninda:S.ist.zamaninda, gec:S.ist.gec,
+      kurye_karti:S.ist.idIle, kaskla:S.ist.kaskla, yakit_alindi:S.ist.yakitAlindi,
+      tasarruf:S.tasarruf, rekor:rekor,
+      sure_dk: Math.round((Date.now() - (baslangicZ || Date.now())) / 60000)
+    });
+    $('sonucAlt').textContent = rekor&&S.puan>0 ? 'Yeni rekorun bu! 🎉' : (S.ist.teslim ? 'Güzel vardiya.' : 'Bir sonraki vardiyada ilk siparişi hemen al.');
+    var satir=function(a,b){return '<div class="sonuc-satir"><span>'+a+'</span><b>'+b+'</b></div>';};
+    $('sonucDetay').innerHTML =
+      satir('Puan', S.puan) + satir('Teslimat', S.ist.teslim) +
+      satir('Zamanında', S.ist.zamaninda) + satir('Kurye ID ile site girişi', S.ist.idIle) +
+      satir('💜 Kurye Club ile tasarruf', S.tasarruf+' ₺') +
+      satir('En iyi skorun', en);
+    // Örnek sıralama (prototip): gerçek sürümde sunucudan gelecek
+    var ornek=[['Mehmet K. · İstanbul',920],['Ayşe T. · Ankara',870],['Emre D. · İzmir',810],['Burak S. · Bursa',760],['Can Y. · İstanbul',690]];
+    ornek.push(['Sen',S.puan]); ornek.sort(function(a,b){return b[1]-a[1]});
+    $('sira').innerHTML='<small>Haftalık Türkiye sıralaması (örnek veriler, prototip)</small>'+
+      ornek.map(function(r,i){ return '<div class="'+(r[0]==='Sen'?'sen':'')+'"><span>'+(i+1)+'. '+r[0]+'</span><b>'+r[1]+'</b></div>'; }).join('');
+    if(S.tasarruf>0){
+      $('sonucDetay').innerHTML += '<p style="margin:12px 0 0;font-size:13px">Gerçek hayatta da öyle: uygulamadaki anlaşmalı istasyon, market ve servislerde Kurye Club üyeliğinle indirim al.</p>';
+    }
+    $('avantaj').classList.remove('goster');
+    $('sonuc').hidden=false;
+  }
+  $('duruyorum').onclick=basla;
+  $('tekrar').onclick=basla;
+  window.addEventListener('resize',boyutla);
+  sifirla(); boyutla(); listeleriGuncelle(); hud();
+})();
+</script>
+</body>
+</html>
