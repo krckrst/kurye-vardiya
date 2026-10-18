@@ -77,7 +77,7 @@ h1{margin:0;font-size:40px;line-height:1;font-weight:800;color:var(--yelek)}
 
   <!-- Başlangıç -->
   <section id="giris" class="ekran aktif">
-    <div class="logo"><div class="kutu">🔤</div><div><h1>Kelime Rotası</h1><div class="alt">Kurye ve taşımacılık kelimelerini bul · 25 seviye</div></div></div>
+    <div class="logo"><div class="kutu">🔤</div><div><h1>Kelime Rotası</h1><div class="alt">Kurye ve taşımacılık kelimelerini bul · <span id="svSayisi">25 seviye</span></div></div></div>
     <div class="ipucuKutu">Harflerin üzerinde parmağını kaydırarak gizli kelimeleri bul. Kelimeler yatay, dikey, çapraz ve ileri seviyelerde ters de olabilir.</div>
     <button class="btn ana" id="devamBtn">Oyna</button>
     <button class="btn gunlukBtn" id="gunlukBtn">📅 Günün bulmacası<small id="gunlukAlt">Her gün yeni, herkese aynı</small></button>
@@ -148,7 +148,7 @@ const SEVIYELER = [
   { tema: 'Efsane Kurye', boyut: 12, ters: true, capraz: true, k: ['SABIR', 'GÜLÜMSEME', 'NEZAKET', 'DİSİPLİN', 'ÖZEN', 'GÜVEN', 'EKİP', 'BAŞARI', 'EMEK'] },
 ];
 // Günün bulmacası: her gün herkese aynı 7 kelime (tarih tohumlu)
-const GUNLUK_HAVUZ = Array.from(new Set(SEVIYELER.flatMap(s => s.k).concat([
+let GUNLUK_HAVUZ = Array.from(new Set(SEVIYELER.flatMap(s => s.k).concat([
   'MOLA', 'KURYE', 'ŞEHİR', 'HARİTA', 'KAPI', 'ZİL', 'SİTE', 'BLOK', 'DAİRE', 'KAT', 'ASANSÖR', 'GÖREVLİ',
   'NÖBET', 'ECZANE', 'FIRIN', 'SİMİT', 'POĞAÇA', 'AYRAN', 'KARGO', 'İADE', 'TESLİMAT', 'ŞOFÖR', 'DİREKSİYON', 'PLAKA'
 ]))).filter(k => Array.from(k).length <= 10);
@@ -531,7 +531,27 @@ document.fonts && document.fonts.ready.then(() => { if (S.tahta) ciz(); });
 menuCiz();
 gunlukMenu();
 // Uygulama "Günün bulmacası"ndan açtıysa doğrudan başla
-if (new URLSearchParams(location.search).get('gunluk') === '1') gunlukAc();
+// Admin'in eklediği temalar ve günün bulmacası kelimeleri (sunucudan)
+function icerikUygula(r) {
+  const k = (r && r.kelime) || {};
+  (k.seviyeler || []).forEach(sv => {
+    const kel = (sv.k || []).filter(x => typeof x === 'string' && x.length >= 2);
+    if (!sv.tema || kel.length < 4) return;
+    const uzun = Math.max(...kel.map(x => Array.from(x).length));
+    SEVIYELER.push({ tema: sv.tema, boyut: Math.min(12, Math.max(10, uzun + 1)), ters: true, capraz: true, k: kel, admin: true });
+  });
+  if ((k.gunlukEk || []).length) {
+    GUNLUK_HAVUZ = Array.from(new Set(GUNLUK_HAVUZ.concat(k.gunlukEk.filter(x => Array.from(x).length <= 10))));
+  }
+  $('svSayisi') && ($('svSayisi').textContent = SEVIYELER.length + ' seviye');
+}
+const icerikGeldi = Promise.race([
+  fetch(SKOR_ADRESI, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ olay: 'icerik' }) })
+    .then(r => r.json()).then(icerikUygula).catch(() => {}),
+  new Promise(r => setTimeout(r, 2500)),
+]).then(() => { menuCiz(); gunlukMenu(); });
+// Uygulama "Günün bulmacası"ndan açtıysa (içerik gelince, herkese aynı bulmaca için) doğrudan başla
+if (new URLSearchParams(location.search).get('gunluk') === '1') icerikGeldi.then(gunlukAc);
 </script>
 </body>
 </html>

@@ -464,13 +464,13 @@ const GEC_SAHNE = { say: 'Biraz geç kaldın ama...', opts: [
   { t: 'Trafik çok kötüydü.', reply: 'Hmm.', tip: 0 }] };
 const ALIS = {
   restoran: ['Sipariş birazdan hazır, bir dakika.', 'Ocakta, az bekle.', 'Bugün çok yoğunuz, kusura bakma.'],
-  market: ['Poşetler hazır. Kurye Club’lılara kendi alışverişinde %10 indirim var bu arada.', 'Ekmeği de ekledim, kontrol et.'],
+  market: ['Poşetler hazır. Kurye Club’lılara kendi alışverişinde de indirim var bu arada.', 'Ekmeği de ekledim, kontrol et.'],
   kafe: ['Kahveler köpüklü, dökmeden götür!', 'Kapakları sıkıca kapattım.'],
   eczane: ['Reçeteli ilaç, acil. Hasta bekliyor.', 'Soğuk zincir ilaç var, hızlı götürmen lazım.']
 };
 const NPC_YOL = ['Gül Sokak’ta yol çalışması var, dikkat!', 'Yağmur başlayacakmış, yağmurluğu unutma.', 'Bugün bahşişler iyi gidiyor.',
   'Bağdat Cd.’de hız kontrolü var, yavaş!', 'Sitede güvenlik Kurye Kartı’nı okutuyor, hızlı geçiyorsun.', 'Acil işe hazırım’ı açtım, bakalım.',
-  'Lastik havamı kontrol ettirdim, servis %15 indirimli.', 'Çay ocağında kimler var acaba?'];
+  'Lastik havamı kontrol ettirdim, servis indirimli.', 'Çay ocağında kimler var acaba?'];
 const SELAM = ['Kolay gelsin!', 'Selam, hayırlı işler!', 'Bugün nasıl gidiyor?', 'Yavaş git, sokaklar kaygan.', 'Kolay gelsin, bahşişler bol olsun!'];
 const CEVAP = ['Sana da kolay gelsin {h}!', 'Eyvallah {h}!', 'İyi gidiyor, sağ ol {h}!', 'Dikkat et sen de {h}!'];
 const NPC_IKILI = [
@@ -478,7 +478,7 @@ const NPC_IKILI = [
   ['Bugün kaç paket attın {h}?', 'On iki, daha yarı yoldayım.'],
   ['Yakıt anlaşmasını yaptın mı?', 'Yaptım, istasyonda indirim hemen düşüyor.'],
   ['Navigasyon beni yine yanlış sokağa soktu.', 'Numaralara bak {h}, alt taraf tek gidiyor.'],
-  ['Lastiğim patladı sandım, korktum.', 'Servise uğra {h}, %15 indirim var.']
+  ['Lastiğim patladı sandım, korktum.', 'Servise uğra {h}, indirim var.']
 ];
 const CAY_SOHBET = [
   [['K', 'İstasyonda Kurye Club anlaşmasıyla indirim alıyorum, ayda epey tutuyor.'], ['R', 'Ben de uygulamadan başvurdum, iki dakika sürdü.']],
@@ -1123,7 +1123,7 @@ async function mola() {
 async function servis() {
   G.busy = true; G.paused = true;
   const L = places.servis;
-  await soyle(L.anchor, 'Kurye Club’lılara işçilik %15 indirimli. Lastik havana bakayım mı?', 2100, 'Usta');
+  await soyle(L.anchor, 'Kurye Club’lılara işçilik indirimli. Lastik havana bakayım mı?', 2100, 'Usta');
   const i = await sec(baslik('Usta Motor Servis'), ['Bak usta (1 dk)', 'Sonra uğrarım']);
   if (i === 0) { G.time += 1; await soyle(L.anchor, 'Lastikler tamam, yolun açık olsun.', 1600, 'Usta'); }
   G.busy = false; G.paused = false;

@@ -415,13 +415,13 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
   function mola(){
     if(S.enerji>=85){ durumYaz('🛒 Enerjin yerinde, markete şimdilik gerek yok.'); return; }
     S.enerji=Math.min(100,S.enerji+65); S.t+=2;
-    avantajAni('"Kurye Club üyeliğim sayesinde suyumu ve atıştırmalığımı %10 indirimli aldım."', 6, 'market');
+    avantajAni('"Kurye Club üyeliğim sayesinde suyumu ve atıştırmalığımı indirimli aldım."', 6, 'market');
     durumYaz('🛒 Kısa bir mola verdin. Enerjin yerine geldi.');
   }
   function servis(){
     if(!S.lastik){ durumYaz('🔧 Motorun sağlam, servise gerek yok.'); return; }
     S.lastik=false; S.t+=4;
-    avantajAni('"Kurye Club üyeliğim sayesinde lastiğimi anlaşmalı serviste %15 indirimle yaptırdım."', 45, 'servis');
+    avantajAni('"Kurye Club üyeliğim sayesinde lastiğimi anlaşmalı serviste indirimli yaptırdım."', 45, 'servis');
     durumYaz('🔧 Lastik değişti, hızın normale döndü.');
   }
 
