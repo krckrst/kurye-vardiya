@@ -23,6 +23,8 @@ h1{margin:0;font-size:40px;line-height:1;font-weight:800;color:var(--yelek)}
 .alt{color:var(--soluk);font-size:15px;margin-top:6px}
 .btn{border:0;border-radius:14px;padding:14px 18px;font:700 18px var(--font);cursor:pointer}
 .btn.ana{background:var(--yelek);color:var(--metin)}
+.btn.gunlukBtn{margin-top:10px;background:linear-gradient(135deg,#7B6CF0,#4834D4);color:#fff;display:flex;flex-direction:column;align-items:center;gap:0}
+.btn.gunlukBtn small{font-size:12.5px;font-weight:600;opacity:.85}
 .btn.ikincil{background:#3A3F4D;color:var(--acik)}
 .btn:active{transform:scale(.97)}
 /* Başlangıç */
@@ -75,9 +77,10 @@ h1{margin:0;font-size:40px;line-height:1;font-weight:800;color:var(--yelek)}
 
   <!-- Başlangıç -->
   <section id="giris" class="ekran aktif">
-    <div class="logo"><div class="kutu">🔤</div><div><h1>Kelime Rotası</h1><div class="alt">Kurye ve taşımacılık kelimelerini bul</div></div></div>
+    <div class="logo"><div class="kutu">🔤</div><div><h1>Kelime Rotası</h1><div class="alt">Kurye ve taşımacılık kelimelerini bul · 25 seviye</div></div></div>
     <div class="ipucuKutu">Harflerin üzerinde parmağını kaydırarak gizli kelimeleri bul. Kelimeler yatay, dikey, çapraz ve ileri seviyelerde ters de olabilir.</div>
     <button class="btn ana" id="devamBtn">Oyna</button>
+    <button class="btn gunlukBtn" id="gunlukBtn">📅 Günün bulmacası<small id="gunlukAlt">Her gün yeni, herkese aynı</small></button>
     <div class="temaBaslik" style="margin-top:22px">SEVİYELER</div>
     <div class="seviyeler" id="seviyeler"></div>
   </section>
@@ -129,7 +132,22 @@ const SEVIYELER = [
   { tema: 'Vardiya', boyut: 10, ters: true, capraz: true, k: ['MESAİ', 'GECE', 'SABAH', 'MOLA', 'PRİM', 'BAHŞİŞ', 'HAKEDİŞ'] },
   { tema: 'Hava', boyut: 10, ters: true, capraz: true, k: ['YAĞMUR', 'KAR', 'RÜZGAR', 'SİS', 'GÜNEŞ', 'DOLU', 'BUZ'] },
   { tema: 'Usta Kurye', boyut: 11, ters: true, capraz: true, k: ['NAVİGASYON', 'MÜŞTERİ', 'ZAMANINDA', 'GÜVENİLİR', 'HIZLI', 'DİKKAT', 'ROTA', 'PUAN'] },
+  { tema: 'Market', boyut: 10, ters: true, capraz: true, k: ['EKMEK', 'SÜT', 'PEYNİR', 'YUMURTA', 'MAKARNA', 'ÇAY', 'ŞEKER'] },
+  { tema: 'Pazaryeri', boyut: 10, ters: true, capraz: true, k: ['İLAN', 'FİYAT', 'SATICI', 'ALICI', 'İKİNCİEL', 'SIFIR', 'FAVORİ'] },
+  { tema: 'Yemek', boyut: 10, ters: true, capraz: true, k: ['DÖNER', 'LAHMACUN', 'PİDE', 'KÖFTE', 'BURGER', 'PİZZA', 'MANTI'] },
+  { tema: 'Bakım', boyut: 11, ters: true, capraz: true, k: ['YAĞ', 'FİLTRE', 'BUJİ', 'AKÜ', 'BALATA', 'DEBRİYAJ', 'KARBÜRATÖR'] },
+  { tema: 'Trafik', boyut: 11, ters: true, capraz: true, k: ['IŞIK', 'YAYA', 'GEÇİT', 'LEVHA', 'HIZ', 'SOLLAMA', 'EMNİYET', 'KEMER'] },
+  { tema: 'İstanbul', boyut: 11, ters: true, capraz: true, k: ['KADIKÖY', 'BEŞİKTAŞ', 'ÜSKÜDAR', 'FATİH', 'ŞİŞLİ', 'BAKIRKÖY', 'MALTEPE', 'SARIYER'] },
+  { tema: 'Türkiye', boyut: 11, ters: true, capraz: true, k: ['ANKARA', 'İZMİR', 'BURSA', 'ANTALYA', 'KONYA', 'ADANA', 'TRABZON', 'KAYSERİ'] },
+  { tema: 'Avantaj', boyut: 11, ters: true, capraz: true, k: ['İNDİRİM', 'KUPON', 'YAKIT', 'MARKET', 'ÖDÜL', 'PUAN', 'KAMPANYA', 'AVANTAJ'] },
+  { tema: 'Ekipman', boyut: 12, ters: true, capraz: true, k: ['ÇANTA', 'POWERBANK', 'TUTUCU', 'YAĞMURLUK', 'KASK', 'ELDİVEN', 'DİZLİK', 'MONT'] },
+  { tema: 'Efsane Kurye', boyut: 12, ters: true, capraz: true, k: ['SABIR', 'GÜLÜMSEME', 'NEZAKET', 'DİSİPLİN', 'ÖZEN', 'GÜVEN', 'EKİP', 'BAŞARI', 'EMEK'] },
 ];
+// Günün bulmacası: her gün herkese aynı 7 kelime (tarih tohumlu)
+const GUNLUK_HAVUZ = Array.from(new Set(SEVIYELER.flatMap(s => s.k).concat([
+  'MOLA', 'KURYE', 'ŞEHİR', 'HARİTA', 'KAPI', 'ZİL', 'SİTE', 'BLOK', 'DAİRE', 'KAT', 'ASANSÖR', 'GÖREVLİ',
+  'NÖBET', 'ECZANE', 'FIRIN', 'SİMİT', 'POĞAÇA', 'AYRAN', 'KARGO', 'İADE', 'TESLİMAT', 'ŞOFÖR', 'DİREKSİYON', 'PLAKA'
+]))).filter(k => Array.from(k).length <= 10);
 const BILGILER = [
   'Türkiye\'de her gün milyonlarca paket kuryelerle kapıya ulaşıyor.',
   'Kaskın düzgün takılması kaza anında baş yaralanması riskini büyük ölçüde azaltır.',
@@ -146,12 +164,37 @@ const BILGILER = [
   'Vardiya giriş-çıkışını kayıt altına almak hakedişte tartışmayı bitirir.',
   'Buzlu yolda motosiklette ani fren ve ani dönüşten kaçın.',
   'Güvenilir kurye: zamanında giden, haber veren, paketi özenle taşıyan kuryedir.',
+  'Market siparişinde soğuk ürünleri ayrı poşette taşımak müşteriyi mutlu eder.',
+  'Pazaryerinde ikinci el ekipman alırken fotoğrafı ve faturayı mutlaka iste.',
+  'Sıcak yemek siparişinde termal çanta ürünü uzun süre sıcak tutar.',
+  'Zincir gerginliği ve yağı düzenli kontrol edilmezse motor daha çok yakar.',
+  'Yaya geçidinde yayaya yol vermek hem kural hem nezakettir.',
+  'Büyük şehirlerde trafik akşam saatlerinde zirve yapar; rotanı ona göre planla.',
+  'Uzun yolda her iki saatte bir mola vermek dikkati toparlar.',
+  'Kurye Club üyeliği ile anlaşmalı noktalarda avantajlardan yararlanabilirsin.',
+  'Powerbank, gün boyu navigasyon kullanan kuryenin en iyi dostudur.',
+  'Gülümseyerek teslim edilen paket, müşterinin aklında kalır.',
 ];
+// Tohumlu rastgele (günün bulmacası herkese aynı çıksın)
+function tohumlu(tohum) {
+  let a = tohum >>> 0;
+  return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function bugunTr() { return new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10); }
+function tarihTohum(g) { let h = 2166136261; for (const c of 'kelime:' + g) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function gunlukSeviye() {
+  const g = bugunTr(), r = tohumlu(tarihTohum(g));
+  const havuz = GUNLUK_HAVUZ.slice(), k = [];
+  while (k.length < 7 && havuz.length) k.push(havuz.splice(Math.floor(r() * havuz.length), 1)[0]);
+  const [y, a, gn] = g.split('-');
+  return { tema: gn + '.' + a + '.' + y, boyut: 10, ters: true, capraz: true, k, gunluk: true, tohum: tarihTohum(g) + 7 };
+}
 const DOLGU = 'AAAAEEEEİİİIKKLLMMNNRRRSSTTUUYDBGOÖÜÇŞPZHC';
 
 /* ---------------- Yardımcılar ---------------- */
 const $ = id => document.getElementById(id);
-const rnd = n => Math.floor(Math.random() * n);
+let RNG = Math.random;
+const rnd = n => Math.floor(RNG() * n);
 const harfler = s => Array.from(s);
 function kayitOku() { try { return JSON.parse(localStorage.getItem('kv3-ilerleme') || '{}'); } catch (e) { return {}; } }
 function kayitYaz(v) { try { localStorage.setItem('kv3-ilerleme', JSON.stringify(v)); } catch (e) {} }
@@ -169,18 +212,31 @@ function skorGonder(olay, veri) {
     .then(r => r.json()).catch(() => null);
 }
 const escH = x => String(x).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const NEDEN = { oturum: 'oyun oturumunun süresi doldu, oyunu Oyunlar ekranından yeniden aç', fazla: 'bu oturumda çok fazla oyun açıldı', gecersiz: 'skor doğrulanamadı', eksik: 'oyun oturumu bulunamadı' };
+function etkinlikGoster(r) {
+  const e = r && r.etkinlik;
+  if (e && (e.oyun === 'kelime' || e.oyun === 'hepsi')) toast(e.emoji + ' ' + e.ad);
+}
 function oduluCiz(r) {
   const el = $('bOdul');
   if (!el) return;
-  if (!SID) { el.innerHTML = ''; return; }
-  if (!r || r.gecersiz || r.hata) { el.innerHTML = '<span class="kc-soluk">Bu bölüm sıralamaya sayılmadı.</span>'; return; }
-  let h = `<div class="kc-odul">🪙 ${r.kredi ? '+' + r.kredi + ' kredi' : 'Bugünlük oyun kredisi limiti doldu'} · +${r.sayilanPuan} puan${r.sira ? ' · Haftalık ' + r.sira + '.' : ''}</div>`;
+  if (!SID) { el.innerHTML = '<span class="kc-soluk">Oyun uygulamanın dışında açıldı; puan sayılmaz. Kurye Club uygulamasındaki Oyunlar\'dan aç.</span>'; return; }
+  if (!r) { el.innerHTML = '<span class="kc-soluk">⚠️ Skor gönderilemedi: sunucuya ulaşılamadı. İnternetini kontrol et.</span>'; return; }
+  if (r.gecersiz || r.hata) { el.innerHTML = '<span class="kc-soluk">⚠️ Bu bölüm sayılmadı: ' + escH(r.neden || NEDEN[r.hata] || 'oyun oturumu geçersiz') + '</span>'; return; }
+  if (r.gunlukTekrar) { el.innerHTML = '<span class="kc-soluk">Günün bulmacasının ödülünü bugün zaten aldın. Yarın yeni bulmaca!</span>'; return; }
+  let h = `<div class="kc-odul">🪙 ${r.kredi ? '+' + r.kredi + ' puan' : 'Bugünlük oyun puanı sınırı doldu'} · ${r.sayilanPuan} skor${r.sira ? ' · Haftalık ' + r.sira + '.' : ''}</div>`;
+  if (r.gunlukSira) h += `<div class="kc-gorev">📅 Bugün bulmacayı çözen ${r.gunlukSira}. kurye sensin!</div>`;
+  if (r.etkinlik) h += `<div class="kc-gorev">${escH(r.etkinlik.emoji)} ${escH(r.etkinlik.ad)}: ekstra puan kazandın</div>`;
   (r.gorev || []).forEach(g => { h += `<div class="kc-gorev">🎯 Görev tamam: ${escH(g.ad)} (+${g.odul})</div>`; });
   el.innerHTML = h;
 }
 
 /* ---------------- Tahta üretimi ---------------- */
 function tahtaUret(sv) {
+  RNG = sv.tohum ? tohumlu(sv.tohum) : Math.random;
+  try { return tahtaUretIc(sv); } finally { RNG = Math.random; }
+}
+function tahtaUretIc(sv) {
   const N = sv.boyut;
   const yonler = [[1, 0], [0, 1]];
   if (sv.capraz) yonler.push([1, 1], [1, -1]);
@@ -221,13 +277,14 @@ function tahtaUret(sv) {
 
 /* ---------------- Durum ---------------- */
 const RENKLER = ['#6C5CE7', '#2FA36B', '#F08C00', '#E5484D', '#3B82F6', '#D946EF', '#0EA5A4', '#B45309'];
-const S = { sv: 0, tahta: null, bulunan: [], sec: null, bas: 0, ipucu: 3, ipucuHuc: null, bitti: false, zaman: null };
+const SV = () => S.ozel || SEVIYELER[S.sv];
+const S = { ozel: null, durakla: 0, duraklaBas: 0, sv: 0, tahta: null, bulunan: [], sec: null, bas: 0, ipucu: 3, ipucuHuc: null, bitti: false, zaman: null };
 const cv = $('tahta'), ctx = cv.getContext('2d');
 let H = 40, PX = 0; // hücre boyutu (css px), dpr
 
 function boyutla() {
   if (!S.tahta) return;
-  const N = SEVIYELER[S.sv].boyut;
+  const N = SV().boyut;
   const kap = $('tahtaKap').getBoundingClientRect();
   const yan = Math.min(kap.width - 8, kap.height - 8, 520);
   H = Math.floor(yan / N);
@@ -241,7 +298,7 @@ function boyutla() {
 window.addEventListener('resize', boyutla);
 
 function ciz() {
-  const N = SEVIYELER[S.sv].boyut;
+  const N = SV().boyut;
   ctx.setTransform(PX, 0, 0, PX, 0, 0);
   ctx.clearRect(0, 0, H * N, H * N);
   // bulunan kelimeler: kapsül
@@ -276,7 +333,7 @@ function kapsul(x0, y0, x1, y1, renk, alfa) {
 /* ---------------- Giriş (dokunma) ---------------- */
 function hucre(e) {
   const r = cv.getBoundingClientRect();
-  const N = SEVIYELER[S.sv].boyut;
+  const N = SV().boyut;
   const x = Math.floor((e.clientX - r.left) / H), y = Math.floor((e.clientY - r.top) / H);
   if (x < 0 || y < 0 || x >= N || y >= N) return null;
   return { x, y };
@@ -289,7 +346,7 @@ function hizala(bas, hedef) {
   const adim = Math.round(aci / (Math.PI / 4));
   const yx = Math.round(Math.cos(adim * Math.PI / 4)), yy = Math.round(Math.sin(adim * Math.PI / 4));
   const uz = Math.max(Math.abs(dx), Math.abs(dy));
-  const N = SEVIYELER[S.sv].boyut;
+  const N = SV().boyut;
   let n = uz;
   while (n > 0) {
     const x = bas.x + yx * n, y = bas.y + yy * n;
@@ -318,7 +375,7 @@ cv.addEventListener('pointerdown', e => {
 cv.addEventListener('pointermove', e => {
   if (!S.sec) return;
   const r = cv.getBoundingClientRect();
-  const N = SEVIYELER[S.sv].boyut;
+  const N = SV().boyut;
   const hx = Math.max(0, Math.min(N - 1, Math.floor((e.clientX - r.left) / H)));
   const hy = Math.max(0, Math.min(N - 1, Math.floor((e.clientY - r.top) / H)));
   const yeni = hizala(S.sec, { x: hx, y: hy });
@@ -342,7 +399,7 @@ cv.addEventListener('pointercancel', () => { S.sec = null; $('secim').textConten
 function kontrol(metin, s) {
   if (harfler(metin).length < 2) return;
   const ters = harfler(metin).reverse().join('');
-  const sv = SEVIYELER[S.sv];
+  const sv = SV();
   const aday = sv.k.find(k => (k === metin || k === ters) && !S.bulunan.some(b => b.kelime === k));
   if (!aday) { if (harfler(metin).length >= 3) titret(); return; }
   const dx = Math.sign(s.son.x - s.x), dy = Math.sign(s.son.y - s.y);
@@ -365,14 +422,20 @@ function toast(m) {
 
 /* ---------------- Akış ---------------- */
 function kelimeListesi() {
-  const sv = SEVIYELER[S.sv];
+  const sv = SV();
   $('kelimeler').innerHTML = sv.k.map(k => `<span class="kl ${S.bulunan.some(b => b.kelime === k) ? 'bulundu' : ''}">${k}</span>`).join('');
 }
+function gunlukAc() {
+  S.ozel = gunlukSeviye();
+  seviyeAc(-1);
+}
 function seviyeAc(i) {
-  S.sv = i; S.bulunan = []; S.sec = null; S.ipucu = 3; S.ipucuHuc = null; S.bitti = false;
-  S.tahta = tahtaUret(SEVIYELER[i]);
-  $('svBaslik').textContent = 'Seviye ' + (i + 1);
-  $('svTema').textContent = SEVIYELER[i].tema + ' · ' + SEVIYELER[i].k.length + ' kelime';
+  if (i >= 0) S.ozel = null;
+  S.durakla = 0; S.duraklaBas = 0;
+  S.sv = Math.max(0, i); S.bulunan = []; S.sec = null; S.ipucu = 3; S.ipucuHuc = null; S.bitti = false;
+  S.tahta = tahtaUret(SV());
+  $('svBaslik').textContent = S.ozel ? '📅 Günün bulmacası' : 'Seviye ' + (i + 1);
+  $('svTema').textContent = SV().tema + ' · ' + SV().k.length + ' kelime';
   $('ipucuBtn').textContent = '💡 ' + S.ipucu; $('ipucuBtn').disabled = false;
   kelimeListesi();
   ekranGoster('oyun');
@@ -380,36 +443,49 @@ function seviyeAc(i) {
   clearInterval(S.zaman);
   S.zaman = setInterval(sureYaz, 500); sureYaz();
   requestAnimationFrame(boyutla);
-  skorGonder('basla', { seviye: i + 1 });
+  skorGonder('basla', { seviye: S.ozel ? 0 : i + 1 }).then(etkinlikGoster);
 }
-function gecen() { return Math.floor((performance.now() - S.bas) / 1000); }
+function gecen() {
+  const dur = S.durakla + (S.duraklaBas ? performance.now() - S.duraklaBas : 0);
+  return Math.floor((performance.now() - S.bas - dur) / 1000);
+}
+// Uygulama hareket algılayınca oyunu durdurur (Kurye Club güvenli oyun)
+window.kcKilit = function (k) {
+  if (k && !S.duraklaBas) S.duraklaBas = performance.now();
+  if (!k && S.duraklaBas) { S.durakla += performance.now() - S.duraklaBas; S.duraklaBas = 0; }
+};
 function sureMetni(s) { return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
 function sureYaz() { $('sure').textContent = sureMetni(gecen()); if (S.ipucuHuc) ciz(); }
 function bitir() {
   S.bitti = true; clearInterval(S.zaman);
-  const sv = SEVIYELER[S.sv];
+  const sv = SV();
   const sn = gecen();
   const hedef = sv.k.length * 12; // kelime başına ~12 sn
   let yildiz = sn <= hedef ? 3 : sn <= hedef * 2 ? 2 : 1;
   if (S.ipucu < 2) yildiz = Math.min(yildiz, 2);
-  const eski = ILERLEME.yildiz[S.sv + 1] || 0;
-  ILERLEME.yildiz[S.sv + 1] = Math.max(eski, yildiz);
-  ILERLEME.acik = Math.max(ILERLEME.acik, Math.min(SEVIYELER.length, S.sv + 2));
+  if (S.ozel) {
+    ILERLEME.gunluk = ILERLEME.gunluk || {};
+    ILERLEME.gunluk[bugunTr()] = Math.max(ILERLEME.gunluk[bugunTr()] || 0, yildiz);
+  } else {
+    const eski = ILERLEME.yildiz[S.sv + 1] || 0;
+    ILERLEME.yildiz[S.sv + 1] = Math.max(eski, yildiz);
+    ILERLEME.acik = Math.max(ILERLEME.acik, Math.min(SEVIYELER.length, S.sv + 2));
+  }
   kayitYaz(ILERLEME);
   if ($('bOdul')) $('bOdul').innerHTML = SID ? '<span class="kc-soluk">Puanın kaydediliyor…</span>' : '';
-  skorGonder('bitir', { seviye: S.sv + 1, yildiz }).then(oduluCiz);
+  skorGonder('bitir', { seviye: S.ozel ? 0 : S.sv + 1, yildiz }).then(oduluCiz);
   setTimeout(() => {
-    $('bTitle').textContent = S.sv === SEVIYELER.length - 1 ? 'Usta Kurye oldun! 🏆' : 'Tebrikler!';
+    $('bTitle').textContent = S.ozel ? 'Günün bulmacası tamam! 📅' : S.sv === SEVIYELER.length - 1 ? 'Efsane Kurye oldun! 🏆' : 'Tebrikler!';
     $('bYildiz').textContent = '⭐'.repeat(yildiz) + '☆'.repeat(3 - yildiz);
     $('bBilgi').textContent = `${sv.k.length} kelime · ${sureMetni(sn)}` + (yildiz < 3 ? ` · 3 yıldız için ${sureMetni(hedef)} altı` : '');
     $('bBilmece').innerHTML = '<b>Biliyor muydun?</b><br>' + BILGILER[S.sv % BILGILER.length];
-    $('sonrakiBtn').style.display = S.sv < SEVIYELER.length - 1 ? '' : 'none';
+    $('sonrakiBtn').style.display = !S.ozel && S.sv < SEVIYELER.length - 1 ? '' : 'none';
     $('bitti').classList.add('aktif');
   }, 500);
 }
 $('ipucuBtn').onclick = () => {
   if (S.ipucu <= 0 || S.bitti) return;
-  const sv = SEVIYELER[S.sv];
+  const sv = SV();
   const kalan = S.tahta.yer.filter(y => !S.bulunan.some(b => b.kelime === y.kelime));
   if (!kalan.length) return;
   const y = kalan[rnd(kalan.length)];
@@ -430,12 +506,20 @@ function menuCiz() {
     const i = +el.dataset.i; if (i + 1 <= ILERLEME.acik) seviyeAc(i);
   });
 }
+function gunlukMenu() {
+  const y = (ILERLEME.gunluk || {})[bugunTr()];
+  $('gunlukAlt').textContent = y ? 'Bugün çözdün ' + '★'.repeat(y) + ' · yarın yenisi' : 'Her gün yeni, herkese aynı';
+}
+$('gunlukBtn').onclick = gunlukAc;
 $('devamBtn').onclick = () => seviyeAc(Math.min(ILERLEME.acik, SEVIYELER.length) - 1);
-$('geriBtn').onclick = () => { clearInterval(S.zaman); menuCiz(); ekranGoster('giris'); };
-$('sonrakiBtn').onclick = () => { $('bitti').classList.remove('aktif'); seviyeAc(Math.min(S.sv + 1, SEVIYELER.length - 1)); };
-$('menuBtn').onclick = () => { $('bitti').classList.remove('aktif'); menuCiz(); ekranGoster('giris'); };
+$('geriBtn').onclick = () => { clearInterval(S.zaman); menuCiz(); gunlukMenu(); ekranGoster('giris'); };
+$('sonrakiBtn').onclick = () => { $('bitti').classList.remove('aktif'); S.ozel = null; seviyeAc(Math.min(S.sv + 1, SEVIYELER.length - 1)); };
+$('menuBtn').onclick = () => { $('bitti').classList.remove('aktif'); menuCiz(); gunlukMenu(); ekranGoster('giris'); };
 document.fonts && document.fonts.ready.then(() => { if (S.tahta) ciz(); });
 menuCiz();
+gunlukMenu();
+// Uygulama "Günün bulmacası"ndan açtıysa doğrudan başla
+if (new URLSearchParams(location.search).get('gunluk') === '1') gunlukAc();
 </script>
 </body>
 </html>

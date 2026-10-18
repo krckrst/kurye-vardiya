@@ -121,6 +121,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
   <div class="hud">
     <div class="puan"><span id="puan">0</span><small>puan</small></div>
     <div class="sure"><span><em style="font-style:normal">Vardiya</em><em style="font-style:normal" id="sureYazi">2:30</em></span><div class="bar"><i id="sureBar" style="width:100%"></i></div></div>
+    <button id="erkenBitir" style="border:0;border-radius:10px;padding:6px 10px;font:700 13px inherit;background:rgba(255,255,255,.14);color:#fff;cursor:pointer">Bitir</button>
     <div class="saglik">
       <div class="yakit" id="yakitKutu"><span><em style="font-style:normal">⛽ Yakıt</em><em style="font-style:normal" id="yakitYazi">100</em></span><div class="bar"><i id="yakitBar" style="width:100%"></i></div></div>
       <div class="yakit" id="enerjiKutu"><span><em style="font-style:normal">💪 Enerji</em><em style="font-style:normal" id="enerjiYazi">100</em></span><div class="bar"><i id="enerjiBar" style="width:100%"></i></div></div>
@@ -148,6 +149,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
     <div class="ikon">🛵</div>
     <h2>Kurye Vardiyası</h2>
     <p>2,5 dakikalık vardiyada en çok puanı topla. Haftalık Türkiye sıralamasına gir.</p>
+    <div id="etkinlikKutu" style="display:none;background:rgba(242,210,27,.16);border:1px solid rgba(242,210,27,.5);border-radius:12px;padding:8px 10px;margin:0 0 10px;font-size:13.5px;font-weight:700"></div>
     <ul class="kurallar">
       <li>Siparişi al, haritada işletmeye dokun. Paket geç hazırlanabilir: beklemek mi, başka iş almak mı, sen seç.</li>
       <li>Paketi alınca teslim adresine dokun. Zamanında teslim et, bonus kazan.</li>
@@ -226,17 +228,31 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
   function esc(x){ return String(x).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function siraCiz(r){
     var el = $('sira');
-    if(!SID){ el.innerHTML = '<small>Haftalık sıralama ve kredi, Kurye Club uygulamasında oynayınca sayılır.</small>'; return; }
-    if(!r){ el.innerHTML = '<small>Skor gönderilemedi. İnternet bağlantını kontrol et.</small>'; return; }
-    if(r.gecersiz){ el.innerHTML = '<small>Bu tur sıralamaya sayılmadı.</small>'; return; }
-    var h = '<div class="kc-odul">' + (r.kredi ? '🪙 +' + r.kredi + ' kredi' : '🪙 Bugünlük oyun kredisi limiti doldu') +
+    if(!SID){ el.innerHTML = '<small>Oyun uygulamanın dışında açıldı; puan sayılmaz. Kurye Club uygulamasındaki Oyunlar\'dan aç.</small>'; return; }
+    if(!r){ el.innerHTML = '<small>⚠️ Skor gönderilemedi: sunucuya ulaşılamadı. İnternetini kontrol et.</small>'; return; }
+    if(r.gecersiz||r.hata){ el.innerHTML = '<small>⚠️ Bu tur sayılmadı: '+esc(r.neden||'oyun oturumu geçersiz, Oyunlar ekranından yeniden aç')+'</small>'; return; }
+    var h = '<div class="kc-odul">' + (r.kredi ? '🪙 +' + r.kredi + ' puan' : '🪙 Bugünlük oyun puanı sınırı doldu') +
       (r.sira ? ' · Haftalık ' + r.sira + '.' : '') + '</div>';
+    if(r.etkinlik) h += '<div class="kc-gorev">'+esc(r.etkinlik.emoji+' '+r.etkinlik.ad)+': ekstra puan kazandın</div>';
     (r.gorev||[]).forEach(function(g){ h += '<div class="kc-gorev">🎯 Görev tamam: ' + esc(g.ad) + ' (+' + g.odul + ')</div>'; });
     h += '<small>Bu haftanın en iyileri</small>';
     h += (r.ilk||[]).map(function(x,i){ return '<div class="'+(x.sen?'sen':'')+'"><span>'+(i+1)+'. '+esc(x.sen?'Sen':x.ad)+'</span><b>'+x.s+'</b></div>'; }).join('');
     el.innerHTML = h;
   }
   var baslangicZ = 0;
+  // Haftalık etkinlik (sunucudan "basla" yanıtıyla gelir)
+  var ETK = { yagmur:false, bahsis:false, yogun:false, ad:'' };
+  function etkinlikUygula(r){
+    var e = r && r.etkinlik; if(!e) return;
+    ETK.yagmur = e.ozel==='yagmur'; ETK.bahsis = e.ozel==='bahsis'; ETK.yogun = e.ozel==='yogun';
+    ETK.ad = e.emoji+' '+e.ad;
+    if(e.oyun==='vardiya'||e.oyun==='hepsi') durumYaz(ETK.ad+' başladı! '+(ETK.bahsis?'Bahşişler bol.':ETK.yagmur?'Yağmura dikkat, zamanında teslim ekstra puan.':ETK.yogun?'Sipariş yağıyor.':''));
+    try{ localStorage.setItem('kc-etk', JSON.stringify(e)); }catch(_){}
+  }
+  try{ var _e=JSON.parse(localStorage.getItem('kc-etk')||'null'); if(_e){ var k=document.getElementById('etkinlikKutu'); k.style.display='block'; k.textContent=_e.emoji+' Bu hafta: '+_e.ad+' · '+_e.aciklama; } }catch(_){}
+  // Uygulama hareket algılayınca oyunu durdurur (Kurye Club güvenli oyun)
+  var APP_KILIT = false;
+  window.kcKilit = function(k){ APP_KILIT = !!k; };
 
   var canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
   var $ = function(id){ return document.getElementById(id); };
@@ -442,12 +458,12 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
     var i=S.aktif.indexOf(o); if(i<0) return;
     S.aktif.splice(i,1);
     var gecikme=S.t-o.sureSiniri, puan=o.odul, not=[];
-    if(gecikme<=0){ puan+=Math.round(o.odul*0.5); not.push('zamanında'); S.ist.zamaninda++; }
+    if(gecikme<=0){ puan+=Math.round(o.odul*(ETK.yagmur&&S.yagmur?0.9:0.5)); not.push('zamanında'); S.ist.zamaninda++; }
     else { puan=Math.round(o.odul*(gecikme>15?0.3:0.6)); not.push(Math.round(gecikme)+' sn geç'); S.ist.gec++; }
     var is=yerId(o.isletme);
     if(is.yemek&&S.t-o.alT<=14){ puan+=10; not.push('sıcak teslim'); }
     var yildiz=gecikme<=0?5:(gecikme<=8?4:(gecikme<=15?3:2));
-    if(yildiz===5&&Math.random()<0.45){ var b=5*Math.ceil(rasgele(1,3)); puan+=b; not.push('bahşiş +'+b); }
+    if(yildiz>=(ETK.bahsis?4:5)&&Math.random()<(ETK.bahsis?0.85:0.45)){ var b=5*Math.ceil(rasgele(1,3))*(ETK.bahsis?2:1); puan+=b; not.push('bahşiş +'+b); }
     S.ist.teslim++;
     puanEkle(puan, '+'+puan);
     durumYaz('✅ Teslim edildi ('+'★'.repeat(yildiz)+') · '+not.join(', '));
@@ -467,7 +483,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
     if(S.t-S.sonOlay<14) return;
     S.sonOlay=S.t;
     if(!S.lastikOlduMu&&S.t>35&&Math.random()<0.35){ S.lastik=true; S.lastikOlduMu=true; durumYaz('🔧 Lastik patladı! Hızın düştü. Anlaşmalı servise uğra.'); return; }
-    if(Math.random()<0.45&&!S.yagmur){ S.yagmur=1; S.yagmurBitis=S.t+rasgele(12,20); $('hava').style.display='block'; durumYaz('🌧️ Yağmur başladı, yavaşla.'); return; }
+    if(Math.random()<(ETK.yagmur?0.85:0.45)&&!S.yagmur){ S.yagmur=1; S.yagmurBitis=S.t+rasgele(12,20); $('hava').style.display='block'; durumYaz('🌧️ Yağmur başladı, yavaşla.'); return; }
     if(Math.random()<0.6&&Object.keys(S.kapali).length===0){
       for(var d=0; d<20; d++){
         var a={x:Math.floor(rasgele(0,NX)), y:Math.floor(rasgele(0,NY))};
@@ -485,7 +501,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
     if(!S.calisiyor){ return; }
     var dt=Math.min(0.1,(zaman-son)/1000||0); son=zaman;
     hizKontrol(dt);
-    if(!S.kapida && !HZ.kilit){
+    if(!S.kapida && !HZ.kilit && !APP_KILIT){
       S.t+=dt;
       // Hareket
       if(S.yol.length){
@@ -518,7 +534,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
         if(y&&o.durum==='kabul'&&o.isletme===y.id&&S.t>=o.hazirT) alimKontrol();
       });
       // Siparişler
-      if(S.t-S.sonSiparis>7.5 && S.yeni.length<3){ siparisUret(); S.sonSiparis=S.t; }
+      if(S.t-S.sonSiparis>(ETK.yogun?5:7.5) && S.yeni.length<(ETK.yogun?4:3)){ siparisUret(); S.sonSiparis=S.t; }
       S.yeni=S.yeni.filter(function(o){return o.kabulBitis>S.t});
       // Olaylar
       if(S.yagmur&&S.t>S.yagmurBitis){ S.yagmur=0; $('hava').style.display='none'; }
@@ -734,7 +750,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
     if(HZ.denemeIste){ HZ.denemeIste=false; HZ.deneBitis=performance.now(); durumYaz('Deneme: 3 saniye sonra 20 km/s ile gidiyormuş gibi davranacak, sonra duracak.'); }
     siparisUret(); S.sonSiparis=0; listeleriGuncelle(); hud(); boyutla();
     durumYaz('Vardiya başladı. İlk siparişini al!');
-    baslangicZ = Date.now(); skorGonder('basla', {});
+    baslangicZ = Date.now(); skorGonder('basla', {}).then(etkinlikUygula);
     requestAnimationFrame(dongu);
   }
   function bitir(){
@@ -757,6 +773,8 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
     $('sonuc').hidden=false;
   }
   $('duruyorum').onclick=basla;
+  // İstediği an vardiyayı bitirebilir; o ana kadarki puan sayılır
+  $('erkenBitir').onclick=function(){ if(S.calisiyor && confirm('Vardiyayı şimdi bitirmek istiyor musun? Şu ana kadarki puanın sayılır.')) bitir(); };
   $('tekrar').onclick=basla;
   window.addEventListener('resize',boyutla);
   sifirla(); boyutla(); listeleriGuncelle(); hud();

@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>Paket Ustası · Kurye Club</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --zemin:#1D1B2E; --panel:#2A2744; --panel2:#35315A; --acik:#F3F1EA; --soluk:#A3A0BD;
+  --yelek:#F2D21B; --mor:#7B6CF0; --mor2:#4834D4; --yesil:#2FA36B; --kirmizi:#E5484D;
+  --font:'Baloo 2','Trebuchet MS',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--zemin);font-family:var(--font);color:var(--acik);
+  -webkit-tap-highlight-color:transparent;touch-action:none;user-select:none;-webkit-user-select:none}
+.ekran{position:fixed;inset:0;display:none;flex-direction:column;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0));padding-bottom:calc(16px + env(safe-area-inset-bottom,0))}
+.ekran.aktif{display:flex}
+h1{margin:0;font-size:40px;line-height:1;font-weight:800;color:var(--yelek)}
+.alt{color:var(--soluk);font-size:15px;margin-top:4px}
+.btn{border:0;border-radius:14px;padding:13px 18px;font:700 18px var(--font);cursor:pointer;width:100%}
+.btn.ana{background:var(--yelek);color:#1D1B2E}
+.btn.gunluk{margin-top:10px;background:linear-gradient(135deg,var(--mor),var(--mor2));color:#fff;display:flex;flex-direction:column;align-items:center}
+.btn.gunluk small{font-size:12.5px;font-weight:600;opacity:.85}
+.btn:active{transform:scale(.97)}
+/* Menü */
+#menu{overflow-y:auto}
+.logo{display:flex;align-items:center;gap:14px;margin:14px 0 10px}
+.logo svg{flex:none}
+.kutu{background:var(--panel);border-radius:14px;padding:12px 14px;font-size:14px;color:var(--soluk);margin:10px 0 14px;line-height:1.45}
+.etk{background:rgba(242,210,27,.14);border:1px solid rgba(242,210,27,.45);color:var(--acik);font-weight:700}
+.baslikK{font-size:13px;letter-spacing:1px;color:var(--soluk);font-weight:700;margin:20px 0 8px}
+.seviyeler{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;padding-bottom:20px}
+.sv{aspect-ratio:1;border-radius:14px;background:var(--panel2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:19px;cursor:pointer}
+.sv small{font-size:10px;color:var(--yelek);margin-top:-3px}
+.sv.kilit{opacity:.35;cursor:default}
+.sv.simdiki{outline:3px solid var(--yelek)}
+/* Oyun */
+#oyun{padding-left:0;padding-right:0}
+.ust{display:flex;align-items:center;gap:10px;padding:0 14px 8px}
+.ust .geri{width:40px;height:40px;border-radius:12px;background:var(--panel2);border:0;color:var(--acik);font-size:22px;cursor:pointer}
+.ust .bilgi{flex:1;min-width:0}
+.ust .bilgi b{display:block;font-size:18px;line-height:1.1}
+.ust .bilgi span{font-size:13px;color:var(--soluk)}
+.sure{background:var(--panel2);border-radius:12px;padding:6px 12px;font-weight:800;font-size:18px;min-width:70px;text-align:center}
+.yardim{font-size:13px;color:var(--soluk);text-align:center;padding:0 14px 6px;min-height:20px}
+/* Panelvan kasası */
+#kasaKap{flex:none;display:flex;align-items:center;justify-content:center;padding:4px 14px 18px}
+.van{position:relative;background:#E9E6F5;border-radius:18px 34px 18px 18px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.van::before{content:'';position:absolute;right:-12px;top:22%;width:12px;height:56%;background:#C9C4E4;border-radius:0 10px 10px 0}
+.van::after{content:'PANELVAN KASASI';position:absolute;left:50%;bottom:-20px;transform:translateX(-50%);font-size:10px;letter-spacing:2px;color:var(--soluk);font-weight:700}
+#kasa{display:grid;gap:3px;background:#C9C4E4;border-radius:10px;padding:3px;position:relative}
+.hc{background:#F7F6FB;border-radius:5px}
+.hc.engel{background:repeating-linear-gradient(45deg,#4A4566,#4A4566 6px,#5B5680 6px,#5B5680 12px)}
+.hc.onizle{background:#CFF5DF}
+.hc.ipucu{animation:nabiz 1s ease-in-out infinite}
+@keyframes nabiz{0%,100%{background:#F7F6FB}50%{background:#FDE68A}}
+.koli.ipucu{animation:zipla .8s ease-in-out infinite}
+@keyframes zipla{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.ipucuBtn{background:var(--mor);border:0;color:#fff;border-radius:12px;padding:8px 12px;font:700 15px var(--font);cursor:pointer}
+.ipucuBtn:disabled{opacity:.4}
+.rehber{background:var(--yelek);color:#1D1B2E;font-weight:800;font-size:15px;border-radius:14px;padding:10px 14px;margin:0 14px 6px;text-align:center}
+.hc.onizle.olmaz{background:#FAD4D5}
+.yerlesik{position:absolute;pointer-events:auto;cursor:pointer}
+/* Bekleyen koliler */
+.tepsi{flex:1;display:flex;flex-wrap:wrap;gap:14px;justify-content:center;align-content:flex-start;align-items:center;padding:16px 12px 6px;min-height:0;overflow-y:auto;background:var(--panel);border-radius:22px 22px 0 0;margin-top:6px}
+.koli{position:relative;cursor:grab;touch-action:none;transition:transform .15s}
+.koli:active{cursor:grabbing}
+.koli.surukle{position:fixed;z-index:20;pointer-events:none;transition:none;filter:drop-shadow(0 10px 16px rgba(0,0,0,.45))}
+.kp{position:absolute;border-radius:3px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.14), inset 0 0 0 .5px rgba(0,0,0,.10)}
+.kp.e{display:flex;align-items:center;justify-content:center}
+.dondurIp{font-size:12px;color:var(--soluk);text-align:center;padding:0 12px}
+/* Modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:30}
+.modal.aktif{display:flex}
+.mkart{background:#fff;color:#1D1B2E;border-radius:22px;padding:22px;width:100%;max-width:380px;text-align:center}
+.mkart h2{margin:0;font-size:28px}
+.yildiz{font-size:42px;letter-spacing:6px;margin:6px 0}
+.bilgiSat{color:#5B6070;font-size:15px}
+.bilgiKutu{background:#F5F5FA;border-radius:14px;padding:12px;margin:12px 0;font-size:14px;text-align:left}
+.bilgiKutu b{color:var(--mor2)}
+.kc-odul{background:linear-gradient(135deg,#F5B83D,#F2D21B);color:#1F2340;font-weight:800;border-radius:12px;padding:10px 12px;margin-top:10px;font-size:14px}
+.kc-gorev{background:rgba(21,128,61,.12);color:#15803D;font-weight:700;border-radius:10px;padding:8px 10px;margin-top:6px;font-size:13px}
+.kc-soluk{display:block;margin-top:10px;font-size:12.5px;color:#6B7088}
+.mkart .btn{margin-top:8px}
+.btn.ikincil{background:#ECEDF2;color:#1D1F27}
+.toast{position:fixed;left:50%;top:80px;transform:translateX(-50%);background:var(--yesil);color:#fff;padding:8px 16px;border-radius:20px;font-weight:800;font-size:17px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:40;white-space:nowrap}
+.toast.goster{opacity:1}
+</style>
+</head>
+<body>
+<!-- Menü -->
+<section id="menu" class="ekran aktif">
+  <div class="logo">
+    <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+      <rect width="64" height="64" rx="18" fill="#F2D21B"/>
+      <path d="M8 40V22a4 4 0 0 1 4-4h26l10 9h6a3 3 0 0 1 3 3v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2Z" fill="#1D1B2E"/>
+      <path d="M40 21h4l7 7h-11Z" fill="#7B6CF0"/>
+      <rect x="13" y="23" width="9" height="8" rx="1.5" fill="#E3B887"/><rect x="24" y="23" width="12" height="8" rx="1.5" fill="#D9826A"/>
+      <rect x="13" y="32" width="15" height="7" rx="1.5" fill="#C9A06A"/><rect x="30" y="32" width="6" height="7" rx="1.5" fill="#E3B887"/>
+      <circle cx="18" cy="44" r="5" fill="#1D1B2E" stroke="#F2D21B" stroke-width="2"/><circle cx="46" cy="44" r="5" fill="#1D1B2E" stroke="#F2D21B" stroke-width="2"/>
+    </svg>
+    <div><h1>Paket Ustası</h1><div class="alt">Panelvanı eksiksiz yükle</div></div>
+  </div>
+  <div class="kutu" id="etkKutu" style="display:none"></div>
+  <div class="kutu"><b style="color:var(--acik)">Nasıl oynanır?</b> Alttaki kolileri parmağınla tutup üstteki beyaz panelvan kasasına sürükle. Bütün koliler sığmalı, boşluk kalmamalı. Koliye <b style="color:var(--acik)">dokununca döner</b>; yerleştirdiğin koliye dokununca geri alırsın.</div>
+  <button class="btn ana" id="oynaBtn">Oyna</button>
+  <button class="btn gunluk" id="gunlukBtn">📅 Günün yükü<small id="gunlukAlt">Her gün yeni, herkese aynı</small></button>
+  <div class="baslikK">SEVİYELER</div>
+  <div class="seviyeler" id="seviyeler"></div>
+</section>
+
+<!-- Oyun -->
+<section id="oyun" class="ekran">
+  <div class="ust">
+    <button class="geri" id="geriBtn" aria-label="Geri">‹</button>
+    <div class="bilgi"><b id="svBaslik">Seviye 1</b><span id="svAlt"></span></div>
+    <button class="ipucuBtn" id="ipucuBtn">💡 3</button>
+    <div class="sure" id="sure">0:00</div>
+  </div>
+  <div class="rehber" id="rehber" hidden></div>
+  <div class="yardim" id="yardim">Koliyi sürükle, kasaya bırak</div>
+  <div id="kasaKap"><div class="van"><div id="kasa"></div></div></div>
+  <div class="tepsi" id="tepsi"></div>
+  <div class="dondurIp">Koliye dokun: döner · Kasadaki koliye dokun: geri alırsın</div>
+</section>
+
+<div class="modal" id="bitti">
+  <div class="mkart">
+    <h2 id="bBaslik">Kasa tamam!</h2>
+    <div class="yildiz" id="bYildiz">⭐⭐⭐</div>
+    <div class="bilgiSat" id="bBilgi"></div>
+    <div id="bOdul"></div>
+    <div class="bilgiKutu" id="bIpucu"></div>
+    <button class="btn ana" id="sonrakiBtn">Sonraki seviye</button>
+    <button class="btn ikincil" id="menuBtn">Seviyeler</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* =========================================================
+   PAKET USTASI — Kurye Club
+   Her seviye, kasanın rastgele (ama seviyeye göre sabit) parçalara
+   bölünmesiyle üretilir; bu yüzden her bölümün mutlaka çözümü vardır.
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const SEVIYE_SAYISI = 40;
+const RENKLER = ['#E3B887', '#D9826A', '#C9A06A', '#B8C6D9', '#A9C69F', '#E7D3A3', '#C7A8C9', '#F2B880', '#9FB8B0', '#E8A0A0'];
+const ETIKET = ['📦', '🍔', '🛒', '💊', '🥤', '📚', '👟', '🎁', '🧴', '🍕'];
+const IPUCLARI = [
+  'Ağır koliler alta ve kasanın ön tarafına konur; fren yaparken kaymaz.',
+  'Teslimat sırasının tersine yükle: ilk teslim edilecek koli kapıya en yakın olmalı.',
+  'Kırılacak paketlerin üstüne yük koyma, "kırılır" etiketine dikkat et.',
+  'Kasada boşluk kalırsa koliler virajda devrilir. Boşlukları yastık ya da battaniyeyle doldur.',
+  'Panelvanda yük sınırını aşmak frenleri zorlar ve yakıt tüketimini artırır.',
+  'Barkodu görünür tarafa koymak, kapıda paketi bulmayı hızlandırır.',
+  'Sıcak ve soğuk ürünleri ayrı bölmelerde taşı.',
+  'Uzun koliyi yan yatırmak yerine dik koymak kasada yer açabilir.',
+];
+
+/* ---------- Tohumlu rastgele: aynı seviye herkese aynı ---------- */
+function tohumlu(tohum) {
+  let a = tohum >>> 0;
+  return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function bugunTr() { return new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10); }
+function metinTohum(m) { let h = 2166136261; for (const c of m) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+
+/* ---------- Seviye tanımı ---------- */
+function seviyeAyari(n) {
+  // n: 1..40, 0 = günün yükü
+  if (n === 0) return { g: 7, y: 5, engel: 2, enBuyuk: 5, tohum: metinTohum('paket:' + bugunTr()) };
+  const g = Math.min(8, 4 + Math.floor((n - 1) / 6));
+  const y = Math.min(5, 3 + Math.floor((n - 1) / 10));
+  const engel = n < 8 ? 0 : n < 20 ? 1 : n < 30 ? 2 : 3;
+  const enBuyuk = n < 4 ? 3 : n < 12 ? 4 : 5;
+  return { g, y, engel, enBuyuk, tohum: 7919 * n + 13 };
+}
+
+/** Kasayı parçalara böler. Dönüş: { g, y, engel:Set, parcalar:[[x,y]...] } */
+function seviyeUret(ayar) {
+  const R = tohumlu(ayar.tohum);
+  for (let deneme = 0; deneme < 50; deneme++) {
+    const { g, y } = ayar;
+    const dolu = Array.from({ length: y }, () => Array(g).fill(-1));
+    const engel = new Set();
+    // Teker yuvası gibi dolu hücreler (kenarlarda)
+    while (engel.size < ayar.engel) {
+      const x = Math.floor(R() * g), yy = R() < 0.5 ? 0 : y - 1;
+      engel.add(x + ',' + yy);
+    }
+    engel.forEach(k => { const [x, yy] = k.split(',').map(Number); dolu[yy][x] = -2; });
+    const parcalar = [];
+    let tek = 0;
+    for (let yy = 0; yy < y; yy++) for (let x = 0; x < g; x++) {
+      if (dolu[yy][x] !== -1) continue;
+      const hedef = 2 + Math.floor(R() * (ayar.enBuyuk - 1));
+      const p = [[x, yy]]; dolu[yy][x] = parcalar.length;
+      while (p.length < hedef) {
+        const komsu = [];
+        p.forEach(([px, py]) => [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => {
+          const nx = px + dx, ny = py + dy;
+          if (nx >= 0 && ny >= 0 && nx < g && ny < y && dolu[ny][nx] === -1) komsu.push([nx, ny]);
+        }));
+        if (!komsu.length) break;
+        const [nx, ny] = komsu[Math.floor(R() * komsu.length)];
+        dolu[ny][nx] = parcalar.length; p.push([nx, ny]);
+      }
+      if (p.length === 1) tek++;
+      parcalar.push(p);
+    }
+    if (tek > Math.max(1, Math.floor(parcalar.length / 5))) continue; // çok fazla tekli koli olmasın
+    return { g: ayar.g, y: ayar.y, engel, parcalar, R };
+  }
+  throw new Error('seviye üretilemedi');
+}
+
+/* ---------- Şekil yardımcıları ---------- */
+function normalle(h) {
+  const mx = Math.min(...h.map(c => c[0])), my = Math.min(...h.map(c => c[1]));
+  return h.map(([x, y]) => [x - mx, y - my]).sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+}
+const dondur = h => normalle(h.map(([x, y]) => [-y, x]));
+const boyut = h => ({ w: Math.max(...h.map(c => c[0])) + 1, h: Math.max(...h.map(c => c[1])) + 1 });
+
+/* ---------- Durum ---------- */
+const S = { ipucu: 3, ipucuHedef: null, n: 1, gunluk: false, sv: null, koliler: [], yer: null, bas: 0, durakla: 0, duraklaBas: 0, zaman: null, bitti: false, hamle: 0 };
+let HC = 40; // hücre boyutu (px)
+
+function kayitOku() { try { return JSON.parse(localStorage.getItem('kc-paket') || '{}'); } catch (e) { return {}; } }
+function kayitYaz() { try { localStorage.setItem('kc-paket', JSON.stringify(ILERLEME)); } catch (e) {} }
+const ILERLEME = Object.assign({ acik: 1, yildiz: {}, gunluk: {} }, kayitOku());
+
+/* ---------- Skor sunucusu (uygulama ?s=OTURUM ile açar) ---------- */
+const SKOR_ADRESI = 'https://europe-west1-kurye-avantaj-platformu-zhwg6b.cloudfunctions.net/oyunSkor';
+const SID = (new URLSearchParams(location.search).get('s') || '').trim();
+function skorGonder(olay, veri) {
+  if (!SID) return Promise.resolve(null);
+  return fetch(SKOR_ADRESI, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ s: SID, olay, veri: veri || {} }) })
+    .then(r => r.json()).catch(() => null);
+}
+const esc = x => String(x).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function oduluCiz(r) {
+  const el = $('bOdul');
+  if (!SID) { el.innerHTML = '<span class="kc-soluk">Oyun uygulamanın dışında açıldı; puan sayılmaz. Kurye Club uygulamasındaki Oyunlar\'dan aç.</span>'; return; }
+  if (!r) { el.innerHTML = '<span class="kc-soluk">⚠️ Skor gönderilemedi: sunucuya ulaşılamadı.</span>'; return; }
+  if (r.gecersiz || r.hata) { el.innerHTML = '<span class="kc-soluk">⚠️ Bu bölüm sayılmadı: ' + esc(r.neden || 'oyun oturumu geçersiz') + '</span>'; return; }
+  if (r.gunlukTekrar) { el.innerHTML = '<span class="kc-soluk">Günün yükünün ödülünü bugün zaten aldın. Yarın yeni yük!</span>'; return; }
+  let h = `<div class="kc-odul">🪙 ${r.kredi ? '+' + r.kredi + ' puan' : 'Bugünlük oyun puanı sınırı doldu'} · ${r.sayilanPuan} skor${r.sira ? ' · Haftalık ' + r.sira + '.' : ''}</div>`;
+  if (r.gunlukSira) h += `<div class="kc-gorev">📅 Bugünün yükünü tamamlayan ${r.gunlukSira}. kurye sensin!</div>`;
+  if (r.etkinlik) h += `<div class="kc-gorev">${esc(r.etkinlik.emoji + ' ' + r.etkinlik.ad)}: ekstra puan kazandın</div>`;
+  (r.gorev || []).forEach(g => { h += `<div class="kc-gorev">🎯 Görev tamam: ${esc(g.ad)} (+${g.odul})</div>`; });
+  el.innerHTML = h;
+}
+function etkinlik(r) {
+  const e = r && r.etkinlik; if (!e) return;
+  try { localStorage.setItem('kc-etk', JSON.stringify(e)); } catch (_) {}
+  if (e.oyun === 'paket' || e.oyun === 'hepsi') toast(e.emoji + ' ' + e.ad);
+}
+// Uygulama hareket algılayınca oyunu durdurur (Kurye Club güvenli oyun)
+window.kcKilit = function (k) {
+  if (k && !S.duraklaBas) S.duraklaBas = performance.now();
+  if (!k && S.duraklaBas) { S.durakla += performance.now() - S.duraklaBas; S.duraklaBas = 0; }
+};
+
+/* ---------- Seviye aç ---------- */
+function seviyeAc(n, gunluk) {
+  S.n = n; S.gunluk = !!gunluk; S.bitti = false; S.ipucu = 3; S.ipucuHedef = null;
+  $('ipucuBtn').textContent = '💡 3'; $('ipucuBtn').disabled = false; S.hamle = 0; S.durakla = 0; S.duraklaBas = 0;
+  const ayar = seviyeAyari(gunluk ? 0 : n);
+  S.sv = seviyeUret(ayar);
+  S.yer = Array.from({ length: S.sv.y }, () => Array(S.sv.g).fill(null));
+  // Koliler: karışık sırada ve rastgele döndürülmüş
+  const R = S.sv.R;
+  S.koliler = S.sv.parcalar.map((p, i) => {
+    let h = normalle(p);
+    const d = Math.floor(R() * 4); for (let k = 0; k < d; k++) h = dondur(h);
+    return { id: i, h, renk: RENKLER[i % RENKLER.length], etiket: ETIKET[Math.floor(R() * ETIKET.length)], yer: null };
+  });
+  for (let i = S.koliler.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [S.koliler[i], S.koliler[j]] = [S.koliler[j], S.koliler[i]]; }
+  $('svBaslik').textContent = gunluk ? '📅 Günün yükü' : 'Seviye ' + n;
+  $('svAlt').textContent = `${S.sv.g}×${S.sv.y} kasa · ${S.koliler.length} koli`;
+  ekran('oyun');
+  requestAnimationFrame(() => {
+    boyutla(); ciz();
+    if (ILERLEME.rehber !== 1 && !gunluk) {
+      rehber('👆 Zıplayan koliyi parmağınla tut, kasada sarı yanan yere sürükle.');
+      ipucuVer(true);
+    } else rehber('');
+  });
+  S.bas = performance.now();
+  clearInterval(S.zaman); S.zaman = setInterval(sureYaz, 500); sureYaz();
+  skorGonder('basla', { seviye: gunluk ? 0 : n }).then(etkinlik);
+}
+function gecen() {
+  const d = S.durakla + (S.duraklaBas ? performance.now() - S.duraklaBas : 0);
+  return Math.floor((performance.now() - S.bas - d) / 1000);
+}
+const sureMetni = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+function sureYaz() { $('sure').textContent = sureMetni(gecen()); }
+
+function boyutla() {
+  // Kasa ekranın en fazla ~%40'ını kaplasın; kalan yer bekleyen kolilere
+  const enFazlaG = (Math.min(window.innerWidth, 520) - 70) / S.sv.g;
+  const enFazlaY = (window.innerHeight * 0.4) / S.sv.y;
+  HC = Math.max(24, Math.floor(Math.min(enFazlaG, enFazlaY, 56)));
+}
+window.addEventListener('resize', () => { if (S.sv) { boyutla(); ciz(); } });
+
+/* ---------- Çizim ---------- */
+function koliEl(k, hc) {
+  const b = boyut(k.h);
+  const el = document.createElement('div');
+  el.className = 'koli';
+  el.style.width = b.w * hc + 'px'; el.style.height = b.h * hc + 'px';
+  const ortaIdx = Math.floor(k.h.length / 2);
+  k.h.forEach(([x, y], i) => {
+    const c = document.createElement('div');
+    c.className = 'kp' + (i === ortaIdx ? ' e' : '');
+    c.style.left = x * hc + 'px'; c.style.top = y * hc + 'px';
+    c.style.width = hc + 'px'; c.style.height = hc + 'px';
+    c.style.background = k.renk;
+    if (i === ortaIdx) { c.textContent = k.etiket; c.style.fontSize = Math.round(hc * 0.5) + 'px'; }
+    el.appendChild(c);
+  });
+  return el;
+}
+function ciz() {
+  const kasa = $('kasa');
+  kasa.innerHTML = '';
+  kasa.style.gridTemplateColumns = `repeat(${S.sv.g}, ${HC - 3}px)`;
+  kasa.style.gridAutoRows = `${HC - 3}px`;
+  for (let y = 0; y < S.sv.y; y++) for (let x = 0; x < S.sv.g; x++) {
+    const c = document.createElement('div');
+    c.className = 'hc' + (S.sv.engel.has(x + ',' + y) ? ' engel' : '');
+    c.dataset.x = x; c.dataset.y = y;
+    kasa.appendChild(c);
+  }
+  // Yerleşmiş koliler
+  S.koliler.filter(k => k.yer).forEach(k => {
+    const el = koliEl(k, HC);
+    el.classList.add('yerlesik');
+    el.style.left = 3 + k.yer.x * HC + 'px'; el.style.top = 3 + k.yer.y * HC + 'px';
+    el.onclick = () => { if (S.bitti) return; geriAl(k); };
+    kasa.appendChild(el);
+  });
+  // Tepsi
+  const tepsi = $('tepsi');
+  tepsi.innerHTML = '';
+  const kucuk = Math.max(18, Math.round(HC * 0.6));
+  S.koliler.filter(k => !k.yer).forEach(k => {
+    const el = koliEl(k, kucuk);
+    el.addEventListener('pointerdown', e => surukleBasla(e, k, el, kucuk));
+    tepsi.appendChild(el);
+  });
+  const kalan = S.koliler.filter(k => !k.yer).length;
+  $('yardim').textContent = kalan ? `${kalan} koli kaldı` : '';
+  const ip = S.ipucuHedef && S.koliler.find(k => k.id === S.ipucuHedef.id);
+  if (ip && !ip.yer) {
+    ip.h.forEach(([x, y]) => { const c = document.querySelector(`.hc[data-x="${S.ipucuHedef.x + x}"][data-y="${S.ipucuHedef.y + y}"]`); if (c) c.classList.add('ipucu'); });
+    const i = S.koliler.filter(k => !k.yer).indexOf(ip);
+    const el = tepsi.children[i]; if (el) el.classList.add('ipucu');
+  } else S.ipucuHedef = null;
+}
+
+/* ---------- İpucu ve ilk oyun rehberi ---------- */
+// Bir koliyi doğru yöne çevirir ve gideceği yeri sarı yanıp söndürür
+function ipucuVer(otomatik) {
+  const k = S.koliler.find(x => !x.yer && dogruYerBos(x));
+  if (!k) { toast('Bir koliyi geri al, yeniden dene'); return; }
+  const p = S.sv.parcalar[k.id], hedef = normalle(p);
+  for (let i = 0; i < 4 && JSON.stringify(k.h) !== JSON.stringify(hedef); i++) k.h = dondur(k.h);
+  S.ipucuHedef = { id: k.id, x: Math.min(...p.map(c => c[0])), y: Math.min(...p.map(c => c[1])) };
+  if (!otomatik) { S.ipucu--; $('ipucuBtn').textContent = '💡 ' + S.ipucu; if (!S.ipucu) $('ipucuBtn').disabled = true; }
+  ciz();
+}
+const dogruYerBos = k => S.sv.parcalar[k.id].every(([x, y]) => S.yer[y][x] === null);
+function rehber(metin) { const r = $('rehber'); r.hidden = !metin; r.textContent = metin || ''; }
+
+/* ---------- Yerleştirme ---------- */
+function sigarMi(k, ox, oy) {
+  return k.h.every(([x, y]) => {
+    const gx = ox + x, gy = oy + y;
+    return gx >= 0 && gy >= 0 && gx < S.sv.g && gy < S.sv.y && !S.sv.engel.has(gx + ',' + gy) && S.yer[gy][gx] === null;
+  });
+}
+function yerlestir(k, ox, oy) {
+  k.yer = { x: ox, y: oy };
+  k.h.forEach(([x, y]) => { S.yer[oy + y][ox + x] = k.id; });
+  S.hamle++;
+  if (S.ipucuHedef && S.ipucuHedef.id === k.id) S.ipucuHedef = null;
+  if (ILERLEME.rehber !== 1 && !S.gunluk) {
+    // İlk oyunda adım adım yol göster
+    const kalan = S.koliler.filter(x => !x.yer).length - 0;
+    if (kalan >= 1) { rehber('👏 Harika! Sıradaki zıplayan koliyi de yanan yere taşı.'); setTimeout(() => { if (!S.bitti) ipucuVer(true); }, 50); }
+    else { rehber(''); ILERLEME.rehber = 1; kayitYaz(); }
+  }
+  if (navigator.vibrate) try { navigator.vibrate(15); } catch (e) {}
+  ciz();
+  if (S.koliler.every(k => k.yer)) bitir();
+}
+function geriAl(k) {
+  k.h.forEach(([x, y]) => { S.yer[k.yer.y + y][k.yer.x + x] = null; });
+  k.yer = null; S.hamle++;
+  ciz();
+}
+
+/* ---------- Sürükle bırak ---------- */
+let D = null;
+function surukleBasla(e, k, el, kucuk) {
+  if (S.bitti) return;
+  e.preventDefault();
+  const r = el.getBoundingClientRect();
+  // Tutulan hücre (koli içinde) — büyük boyutta da aynı hücre parmağın altında kalsın
+  const tx = Math.floor((e.clientX - r.left) / kucuk), ty = Math.floor((e.clientY - r.top) / kucuk);
+  D = { k, el, baslaX: e.clientX, baslaY: e.clientY, tx, ty, kaydi: false, hayalet: null, id: e.pointerId };
+}
+window.addEventListener('pointermove', e => {
+  if (!D) return;
+  if (!D.kaydi && Math.hypot(e.clientX - D.baslaX, e.clientY - D.baslaY) < 8) return;
+  if (!D.kaydi) {
+    D.kaydi = true;
+    D.hayalet = koliEl(D.k, HC);
+    D.hayalet.classList.add('surukle');
+    document.body.appendChild(D.hayalet);
+    D.el.style.opacity = '0.25';
+  }
+  // Parmak koliyi biraz yukarıda tutsun (parmak altını kapatmasın)
+  const x = e.clientX - D.tx * HC - HC / 2, y = e.clientY - D.ty * HC - HC / 2 - 40;
+  D.hayalet.style.left = x + 'px'; D.hayalet.style.top = y + 'px';
+  onizle(x, y);
+});
+function hedefHucre(x, y) {
+  const kr = $('kasa').getBoundingClientRect();
+  return { ox: Math.round((x - kr.left - 3) / HC), oy: Math.round((y - kr.top - 3) / HC) };
+}
+function onizle(x, y) {
+  document.querySelectorAll('.hc.onizle').forEach(c => c.classList.remove('onizle', 'olmaz'));
+  const { ox, oy } = hedefHucre(x, y);
+  const uygun = sigarMi(D.k, ox, oy);
+  D.hedef = uygun ? { ox, oy } : null;
+  D.k.h.forEach(([hx, hy]) => {
+    const c = document.querySelector(`.hc[data-x="${ox + hx}"][data-y="${oy + hy}"]`);
+    if (c) c.classList.add('onizle'), uygun || c.classList.add('olmaz');
+  });
+}
+window.addEventListener('pointerup', () => {
+  if (!D) return;
+  const d = D; D = null;
+  if (!d.kaydi) { // dokunma: döndür
+    d.k.h = dondur(d.k.h); S.hamle++;
+    ciz();
+    return;
+  }
+  d.hayalet.remove();
+  document.querySelectorAll('.hc.onizle').forEach(c => c.classList.remove('onizle', 'olmaz'));
+  if (d.hedef) yerlestir(d.k, d.hedef.ox, d.hedef.oy);
+  else { ciz(); toast('Buraya sığmadı'); }
+});
+window.addEventListener('pointercancel', () => { if (D && D.hayalet) D.hayalet.remove(); D = null; ciz(); });
+
+/* ---------- Bitiş ---------- */
+function bitir() {
+  S.bitti = true; clearInterval(S.zaman);
+  const sn = Math.max(1, gecen());
+  const hedef = S.koliler.length * 7;
+  let yildiz = sn <= hedef ? 3 : sn <= hedef * 2 ? 2 : 1;
+  if (S.ipucu < 2) yildiz = Math.min(yildiz, 2); // 2+ ipucu kullanınca en fazla 2 yıldız
+  if (S.gunluk) { ILERLEME.gunluk[bugunTr()] = Math.max(ILERLEME.gunluk[bugunTr()] || 0, yildiz); }
+  else {
+    ILERLEME.yildiz[S.n] = Math.max(ILERLEME.yildiz[S.n] || 0, yildiz);
+    ILERLEME.acik = Math.max(ILERLEME.acik, Math.min(SEVIYE_SAYISI, S.n + 1));
+  }
+  kayitYaz();
+  $('bOdul').innerHTML = SID ? '<span class="kc-soluk">Puanın kaydediliyor…</span>' : '';
+  skorGonder('bitir', { seviye: S.gunluk ? 0 : S.n, yildiz }).then(oduluCiz);
+  setTimeout(() => {
+    $('bBaslik').textContent = S.gunluk ? 'Günün yükü tamam! 📅' : S.n === SEVIYE_SAYISI ? 'Paket Ustası oldun! 🏆' : 'Kasa tamam! 🚐';
+    $('bYildiz').textContent = '⭐'.repeat(yildiz) + '☆'.repeat(3 - yildiz);
+    $('bBilgi').textContent = `${S.koliler.length} koli · ${sureMetni(sn)}` + (yildiz < 3 ? ` · 3 yıldız için ${sureMetni(hedef)} altı` : '');
+    $('bIpucu').innerHTML = '<b>Usta ipucu</b><br>' + IPUCLARI[(S.gunluk ? new Date().getDate() : S.n) % IPUCLARI.length];
+    $('sonrakiBtn').style.display = !S.gunluk && S.n < SEVIYE_SAYISI ? '' : 'none';
+    $('bitti').classList.add('aktif');
+  }, 450);
+}
+
+/* ---------- Menü ---------- */
+function ekran(id) { document.querySelectorAll('.ekran').forEach(e => e.classList.toggle('aktif', e.id === id)); }
+let toastZ;
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('goster'); clearTimeout(toastZ); toastZ = setTimeout(() => t.classList.remove('goster'), 1300); }
+function menuCiz() {
+  let h = '';
+  for (let n = 1; n <= SEVIYE_SAYISI; n++) {
+    const kilit = n > ILERLEME.acik, y = ILERLEME.yildiz[n] || 0;
+    h += `<div class="sv ${kilit ? 'kilit' : ''} ${n === ILERLEME.acik ? 'simdiki' : ''}" data-n="${n}">${kilit ? '🔒' : n}<small>${kilit ? '' : '★'.repeat(y)}</small></div>`;
+  }
+  $('seviyeler').innerHTML = h;
+  $('seviyeler').querySelectorAll('.sv').forEach(el => el.onclick = () => { const n = +el.dataset.n; if (n <= ILERLEME.acik) seviyeAc(n); });
+  const gy = ILERLEME.gunluk[bugunTr()];
+  $('gunlukAlt').textContent = gy ? 'Bugün tamamladın ' + '★'.repeat(gy) + ' · yarın yenisi' : 'Her gün yeni, herkese aynı';
+  try {
+    const e = JSON.parse(localStorage.getItem('kc-etk') || 'null');
+    if (e) { const k = $('etkKutu'); k.style.display = 'block'; k.className = 'kutu etk'; k.textContent = e.emoji + ' Bu hafta: ' + e.ad + ' · ' + e.aciklama; }
+  } catch (_) {}
+}
+$('ipucuBtn').onclick = () => { if (S.ipucu > 0 && !S.bitti) ipucuVer(false); };
+$('oynaBtn').onclick = () => seviyeAc(Math.min(ILERLEME.acik, SEVIYE_SAYISI));
+$('gunlukBtn').onclick = () => seviyeAc(0, true);
+$('geriBtn').onclick = () => { clearInterval(S.zaman); menuCiz(); ekran('menu'); };
+$('sonrakiBtn').onclick = () => { $('bitti').classList.remove('aktif'); seviyeAc(Math.min(S.n + 1, SEVIYE_SAYISI)); };
+$('menuBtn').onclick = () => { $('bitti').classList.remove('aktif'); menuCiz(); ekran('menu'); };
+menuCiz();
+if (new URLSearchParams(location.search).get('gunluk') === '1') seviyeAc(0, true);
+</script>
+</body>
+</html>

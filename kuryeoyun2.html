@@ -192,6 +192,7 @@ button:focus-visible{outline:3px solid var(--yelek);outline-offset:2px}
   </div>
   <div class="task" id="task"></div>
   <div class="actions">
+    <button id="btnBitir">Bitir</button>
     <button id="btnMap">Harita</button>
     <button id="btnNav">Navigasyon</button>
     <button id="btnList" class="ana" hidden>Paketler</button>
@@ -206,7 +207,8 @@ button:focus-visible{outline:3px solid var(--yelek);outline-offset:2px}
 <section class="ekran" id="menu"><div class="ekran-ic">
   <h1 class="baslik">Kurye<span>Vardiyası</span></h1>
   <div class="serit"></div>
-  <p class="alt">Bugün hangi işi yapıyorsun?</p>
+  <p class="alt" id="semtYazi">Bugün hangi işi yapıyorsun?</p>
+  <div id="etkinlikKutu" style="display:none;background:rgba(242,210,27,.16);border:1px solid rgba(242,210,27,.5);border-radius:12px;padding:8px 10px;margin:8px 0;font-size:14px;font-weight:700"></div>
   <div class="secim">
     <button data-mod="motor"><div class="ic">🛵</div><div><b>Motorlu kurye</b><span>Yemek, market, kafe ve eczane siparişleri. Hızlı ve sıcak teslim.</span></div></button>
     <button data-mod="arac"><div class="ic">🚐</div><div><b>Araçlı kurye</b><span>Aktarma merkezinden 20 paketle çık, adresleri bul, dağıt.</span></div></button>
@@ -245,8 +247,38 @@ button:focus-visible{outline:3px solid var(--yelek);outline-offset:2px}
    ========================================================= */
 const F = "'Baloo 2','Trebuchet MS',sans-serif";
 const T = 40, COLS = 21, ROWS = 31, WW = COLS * T, WH = ROWS * T;
-const HS = ['Lale Sk.', 'Menekşe Sk.', 'Gül Sk.', 'Papatya Sk.', 'Nergis Sk.', 'Karanfil Sk.', 'Zambak Sk.'];
-const VS = ['Atatürk Cd.', 'Bağdat Cd.', 'Barbaros Cd.', 'Cumhuriyet Cd.', 'Sahil Cd.'];
+/* ---------------- Haftalık semt ----------------
+   Her hafta yeni semt: sokak adları, dükkânların ve tanıdıkların yerleri değişir.
+   Sıra sunucudaki oyun.js SEMTLER listesiyle aynı. */
+const SEMTLER = [
+  { ad: 'Çınarlı', zemin: 0x93B474, hs: ['Lale Sk.', 'Menekşe Sk.', 'Gül Sk.', 'Papatya Sk.', 'Nergis Sk.', 'Karanfil Sk.', 'Zambak Sk.'], vs: ['Atatürk Cd.', 'Bağdat Cd.', 'Barbaros Cd.', 'Cumhuriyet Cd.', 'Sahil Cd.'] },
+  { ad: 'Sahilkent', zemin: 0x8FBF9F, hs: ['Martı Sk.', 'Dalga Sk.', 'Yelken Sk.', 'İskele Sk.', 'Mercan Sk.', 'Liman Sk.', 'Fener Sk.'], vs: ['Sahil Cd.', 'Rıhtım Cd.', 'Kıyı Cd.', 'Deniz Cd.', 'Vapur Cd.'] },
+  { ad: 'Yıldıztepe', zemin: 0xA3B86C, hs: ['Yıldız Sk.', 'Ay Sk.', 'Güneş Sk.', 'Bulut Sk.', 'Şafak Sk.', 'Tan Sk.', 'Seher Sk.'], vs: ['Tepe Cd.', 'Gözlem Cd.', 'Rasathane Cd.', 'Zirve Cd.', 'Ufuk Cd.'] },
+  { ad: 'Bahçeli', zemin: 0x86B36B, hs: ['Erik Sk.', 'Kiraz Sk.', 'Elma Sk.', 'Ayva Sk.', 'Dut Sk.', 'İncir Sk.', 'Nar Sk.'], vs: ['Bahçe Cd.', 'Bostan Cd.', 'Fidan Cd.', 'Çiçek Cd.', 'Yemiş Cd.'] },
+  { ad: 'Eski Çarşı', zemin: 0xB5AE7E, hs: ['Bakırcı Sk.', 'Kazancı Sk.', 'Terzi Sk.', 'Saraç Sk.', 'Attar Sk.', 'Kalaycı Sk.', 'Nalbant Sk.'], vs: ['Çarşı Cd.', 'Han Cd.', 'Bedesten Cd.', 'Kapalı Cd.', 'Pazar Cd.'] },
+  { ad: 'Limanyolu', zemin: 0x9AB5A0, hs: ['Halat Sk.', 'Çapa Sk.', 'Dümen Sk.', 'Pusula Sk.', 'Rota Sk.', 'Kaptan Sk.', 'Gemici Sk.'], vs: ['Liman Cd.', 'Antrepo Cd.', 'Gümrük Cd.', 'Konteyner Cd.', 'Vinç Cd.'] },
+  { ad: 'Gülbahar', zemin: 0x9CBF7A, hs: ['Sümbül Sk.', 'Lavanta Sk.', 'Orkide Sk.', 'Yasemin Sk.', 'Begonya Sk.', 'Kamelya Sk.', 'Manolya Sk.'], vs: ['Gülbahar Cd.', 'Bahar Cd.', 'Nisan Cd.', 'Mayıs Cd.', 'Gonca Cd.'] },
+  { ad: 'Kuleli', zemin: 0x8DAA78, hs: ['Burç Sk.', 'Sur Sk.', 'Kale Sk.', 'Kemer Sk.', 'Hisar Sk.', 'Kapı Sk.', 'Mazgal Sk.'], vs: ['Kule Cd.', 'Saray Cd.', 'Divan Cd.', 'Meydan Cd.', 'Saat Cd.'] },
+];
+// İstanbul saatine göre ISO hafta → semt (sunucudaki haftaNo ile aynı hesap)
+function haftaBilgi() {
+  const d = new Date(Date.now() + 3 * 3600 * 1000);
+  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const gun = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - gun);
+  const yilBasi = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  const no = Math.ceil(((t - yilBasi) / 86400000 + 1) / 7);
+  return { yil: t.getUTCFullYear(), no };
+}
+const HB = haftaBilgi();
+const SEMT = SEMTLER[(HB.yil * 53 + HB.no) % SEMTLER.length];
+function tohumlu(tohum) {
+  let a = tohum >>> 0;
+  return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+const SEMT_RNG = tohumlu(HB.yil * 100 + HB.no);
+const HS = SEMT.hs;
+const VS = SEMT.vs;
 const PAKET_SAYISI = 20;
 // Üstteki saat/görev kutusu ve alttaki butonlar haritanın kenarını örtmesin diye
 // kamera haritanın biraz dışına da kayabilir (Lale Sk. ve Zambak Sk. görünür kalır)
@@ -264,7 +296,7 @@ const $ = id => document.getElementById(id);
 
 /* ---------------- Şehir ---------------- */
 const BLOK_OZEL = { '1,1': 'site', '2,3': 'istasyon', '0,5': 'aktarma' };
-const PARSEL_OZEL = {
+const PARSEL_OZEL_TABAN = {
   '0,1,0': { ad: 'Lezzet Dürüm', tip: 'restoran', ikon: '🌯' },
   '2,0,1': { ad: 'Burger Durağı', tip: 'restoran', ikon: '🍔' },
   '2,5,2': { ad: 'Pide Salonu', tip: 'restoran', ikon: '🍕' },
@@ -278,7 +310,20 @@ const PARSEL_OZEL = {
   '0,3,1': { ad: 'Çay Ocağı', tip: 'cay', ikon: '🫖' },
   '3,0,0': { ad: 'Usta Motor Servis', tip: 'servis', ikon: '🔧' }
 };
-const TANIDIK_PARSEL = { '0,2,2': 'nermin', '3,2,1': 'hasan', '1,2,0': 'selin', '2,4,3': 'murat', '3,5,1': 'ece' };
+const TANIDIK_TABAN = { '0,2,2': 'nermin', '3,2,1': 'hasan', '1,2,0': 'selin', '2,4,3': 'murat', '3,5,1': 'ece' };
+// Semte göre dükkân ve tanıdık yerlerini karıştır (ilk semt orijinal yerleşim)
+const PARSEL_OZEL = {}, TANIDIK_PARSEL = {};
+(function yerlesim() {
+  if (SEMT === SEMTLER[0]) { Object.assign(PARSEL_OZEL, PARSEL_OZEL_TABAN); Object.assign(TANIDIK_PARSEL, TANIDIK_TABAN); return; }
+  const adaylar = [];
+  for (let br = 0; br < 6; br++) for (let bc = 0; bc < 4; bc++) {
+    if (BLOK_OZEL[bc + ',' + br]) continue;
+    for (let i = 0; i < 4; i++) adaylar.push(bc + ',' + br + ',' + i);
+  }
+  const al = () => adaylar.splice(Math.floor(SEMT_RNG() * adaylar.length), 1)[0];
+  Object.values(PARSEL_OZEL_TABAN).forEach(v => { PARSEL_OZEL[al()] = v; });
+  Object.values(TANIDIK_TABAN).forEach(v => { TANIDIK_PARSEL[al()] = v; });
+})();
 
 const lots = [], places = {}, doorMap = {}, tileOwner = {}, shops = [];
 (function sehirKur() {
@@ -488,7 +533,7 @@ class Sehir extends Phaser.Scene {
 
 function sehirCiz(s) {
   const g = s.add.graphics().setDepth(0);
-  g.fillStyle(0x93B474, 1).fillRect(0, 0, WW, WH);
+  g.fillStyle(SEMT.zemin, 1).fillRect(0, 0, WW, WH);
   g.fillStyle(0x3B404C, 1);
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (isRoad(c, r)) g.fillRect(c * T, r * T, T, T);
   g.fillStyle(0xE9E4D4, 0.5);
@@ -668,6 +713,8 @@ $('btnMap').onclick = () => { banaDon(); haritaModu(!G.mapMode); };
 $('btnBana').onclick = banaDon;
 $('egitimTamam').onclick = () => { $('egitim').hidden = true; try { localStorage.setItem('kv2-egitim', '1'); } catch (e) {} G.egitimde = false; if (G.egitimSonra) { const f = G.egitimSonra; G.egitimSonra = null; f(); } };
 $('btnNav').onclick = navigasyon;
+// İstediği an bitirebilir; o ana kadar teslim ettikleri sayılır
+$('btnBitir').onclick = () => { if (G.running && !G.busy && confirm('Vardiyayı şimdi bitirmek istiyor musun? Şu ana kadarki teslimatların sayılır.')) bitir('erken'); };
 $('btnList').onclick = () => { if (!G.busy) manifestAc(); };
 $('btnCall').onclick = () => { if (!G.busy && G.sel) ara(G.sel); else if (!G.sel) toast('Önce listeden bir paket seç.'); };
 
@@ -680,17 +727,26 @@ function skorGonder(olay, veri) {
     body: JSON.stringify({ s: SID, olay, veri: veri || {} }) })
     .then(r => r.json()).catch(() => null);
 }
+// Uygulama hareket algılayınca oyunu durdurur (Kurye Club güvenli oyun)
+window.kcKilit = k => { H.kilit = !!k; if (!k) H.durduAt = 0; };
+function etkinlikUygula(r) {
+  const e = r && r.etkinlik; if (!e) return;
+  try { localStorage.setItem('kc-etk', JSON.stringify(e)); } catch (_) {}
+  if (e.oyun === 'mahalle' || e.oyun === 'hepsi') toast(e.emoji + ' ' + e.ad + ' başladı!');
+}
 function kcSonucCiz(r) {
   const el = document.getElementById('kcSonuc');
   if (!el) return;
-  if (!r || r.gecersiz || r.hata) { el.textContent = 'Bu vardiya sıralamaya sayılmadı.'; return; }
-  el.innerHTML = `🪙 ${r.kredi ? '+' + r.kredi + ' kredi' : 'Bugünlük oyun kredisi limiti doldu'} · +${r.sayilanPuan} puan${r.sira ? ' · Haftalık ' + r.sira + '.' : ''}`
+  if (!r) { el.textContent = '⚠️ Skor gönderilemedi: sunucuya ulaşılamadı. İnternetini kontrol et.'; return; }
+  if (r.gecersiz || r.hata) { el.textContent = '⚠️ Bu vardiya sayılmadı: ' + (r.neden || 'oyun oturumu geçersiz, Oyunlar ekranından yeniden aç'); return; }
+  el.innerHTML = `🪙 ${r.kredi ? '+' + r.kredi + ' puan' : 'Bugünlük oyun puanı sınırı doldu'} · ${r.sayilanPuan} skor${r.sira ? ' · Haftalık ' + r.sira + '.' : ''}`
+    + (r.etkinlik ? `<br>${esc(r.etkinlik.emoji + ' ' + r.etkinlik.ad)}: ekstra puan kazandın` : '')
     + (r.gorev || []).map(g => `<br>🎯 Görev tamam: ${esc(g.ad)} (+${g.odul})`).join('');
 }
 
 function basla(mod) {
   if (!G.ready) { setTimeout(() => basla(mod), 200); return; }
-  skorGonder('basla', { mod });
+  skorGonder('basla', { mod }).then(etkinlikUygula);
   try { localStorage.setItem('kv2-mod', mod); } catch (e) {}
   const s = G.scene;
   if (G.player) yokEt(G.player);
@@ -1200,7 +1256,7 @@ function bitir(neden) {
     <p class="alt">${G.mod === 'motor' ? 'Motorlu kurye' : 'Araçlı kurye'}, ${fmt(G.time)}'da kapattın. ${S.sohbet} kişiyle sohbet ettin, ${S.selam} kuryeyle selamlaştın, navigasyona ${S.nav} kez baktın.</p>
     <div class="rapor-g">${g}</div>
     ${dost ? `<div class="dostlar"><b>Mahallede dostların</b><br>${dost}</div>` : ''}
-    ${SID ? '<div class="puan" id="kcSonuc">Puanın kaydediliyor…</div>' : (tamam ? '<div class="puan">Vardiyayı tamamladın! Kredi ve sıralama Kurye Club uygulamasında sayılır.</div>' : '')}
+    ${SID ? '<div class="puan" id="kcSonuc">Puanın kaydediliyor…</div>' : '<div class="puan">Oyun uygulamanın dışında açıldı; puan sayılmaz. Kurye Club uygulamasındaki Oyunlar\'dan aç.</div>'}
     <div class="rapor-b"><button data-r="ayni">Tekrar oyna</button><button class="ikincil" data-r="diger">${G.mod === 'motor' ? 'Araçlı kuryeyi dene' : 'Motorlu kuryeyi dene'}</button></div></div>`;
   $('report').scrollTop = 0;
   $('report').hidden = false;
@@ -1256,6 +1312,10 @@ if ('geolocation' in navigator) {
   } catch (e) {}
 }
 $('hizDene').onclick = () => { H.sahteBitis = performance.now() + 3000; hizGuncelle(20); };
+
+/* Menüde bu haftanın semti ve etkinliği */
+$('semtYazi').innerHTML = `Bu hafta <b style="color:var(--yelek)">${esc(SEMT.ad)}</b> semtindesin. Bugün hangi işi yapıyorsun?`;
+try { const e = JSON.parse(localStorage.getItem('kc-etk') || 'null'); if (e) { const k = $('etkinlikKutu'); k.style.display = 'block'; k.textContent = e.emoji + ' Bu hafta: ' + e.ad + ' · ' + e.aciklama; } } catch (_) {}
 
 /* ---------------- Başlat ---------------- */
 const oyun = new Phaser.Game({
