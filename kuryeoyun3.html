@@ -113,8 +113,12 @@ h1{margin:0;font-size:40px;line-height:1;font-weight:800;color:var(--yelek)}
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="kc-ses.js"></script>
 <script>
 'use strict';
+// Sesler (kc-ses.js yüklenemezse oyun sessiz çalışır)
+const SES = a => { try { window.KcSes && KcSes.cal(a); } catch (e) {} };
+try { if (window.KcSes) { KcSes.muzik('kelime'); KcSes.dugme('left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0))'); } } catch (e) {}
 /* ---------------- Seviyeler ---------------- */
 const SEVIYELER = [
   { tema: 'Kurye', boyut: 7, ters: false, capraz: false, k: ['KURYE', 'PAKET', 'KASK', 'MOTOR', 'ADRES'] },
@@ -227,6 +231,7 @@ function oduluCiz(r) {
   let h = `<div class="kc-odul">🪙 ${r.kredi ? '+' + r.kredi + ' puan' : 'Bugünlük oyun puanı sınırı doldu'} · ${r.sayilanPuan} skor${r.sira ? ' · Haftalık ' + r.sira + '.' : ''}</div>`;
   if (r.gunlukSira) h += `<div class="kc-gorev">📅 Bugün bulmacayı çözen ${r.gunlukSira}. kurye sensin!</div>`;
   if (r.etkinlik) h += `<div class="kc-gorev">${escH(r.etkinlik.emoji)} ${escH(r.etkinlik.ad)}: ekstra puan kazandın</div>`;
+  if ((r.gorev || []).length) setTimeout(() => SES('gorev'), 900);
   (r.gorev || []).forEach(g => { h += `<div class="kc-gorev">🎯 Görev tamam: ${escH(g.ad)} (+${g.odul})</div>`; });
   el.innerHTML = h;
 }
@@ -381,6 +386,7 @@ cv.addEventListener('pointermove', e => {
   const yeni = hizala(S.sec, { x: hx, y: hy });
   if (!S.sec.son || yeni.x !== S.sec.son.x || yeni.y !== S.sec.son.y) {
     S.sec.son = yeni;
+    SES('tik');
     $('secim').textContent = secimMetni();
     ciz();
   }
@@ -407,11 +413,13 @@ function kontrol(metin, s) {
   S.bulunan.push({ kelime: aday, x0: s.x, y0: s.y, dx, dy, uz, renk: RENKLER[S.bulunan.length % RENKLER.length] });
   if (S.ipucuHuc && S.ipucuHuc.kelime === aday) S.ipucuHuc = null;
   kelimeListesi();
+  SES('dogru');
   toast(aday + ' ✓');
   if (navigator.vibrate) try { navigator.vibrate(25); } catch (e) {}
   if (S.bulunan.length === sv.k.length) bitir();
 }
 function titret() {
+  SES('yanlis');
   cv.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }], { duration: 220 });
 }
 let toastZ;
@@ -451,6 +459,8 @@ function gecen() {
 }
 // Uygulama hareket algılayınca oyunu durdurur (Kurye Club güvenli oyun)
 window.kcKilit = function (k) {
+  try { window.KcSes && KcSes.duraklat(k); } catch (e) {}
+  if (k) SES('kilit');
   if (k && !S.duraklaBas) S.duraklaBas = performance.now();
   if (!k && S.duraklaBas) { S.durakla += performance.now() - S.duraklaBas; S.duraklaBas = 0; }
 };
@@ -458,6 +468,7 @@ function sureMetni(s) { return Math.floor(s / 60) + ':' + String(s % 60).padStar
 function sureYaz() { $('sure').textContent = sureMetni(gecen()); if (S.ipucuHuc) ciz(); }
 function bitir() {
   S.bitti = true; clearInterval(S.zaman);
+  setTimeout(() => SES('bitir'), 350);
   const sv = SV();
   const sn = gecen();
   const hedef = sv.k.length * 12; // kelime başına ~12 sn
@@ -490,6 +501,7 @@ $('ipucuBtn').onclick = () => {
   if (!kalan.length) return;
   const y = kalan[rnd(kalan.length)];
   S.ipucuHuc = { x: y.x0, y: y.y0, kelime: y.kelime };
+  SES('sec');
   S.ipucu--; $('ipucuBtn').textContent = '💡 ' + S.ipucu; if (!S.ipucu) $('ipucuBtn').disabled = true;
   toast(y.kelime.charAt(0) + '… buradan başlıyor');
   ciz();

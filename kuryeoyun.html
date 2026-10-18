@@ -121,7 +121,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
   <div class="hud">
     <div class="puan"><span id="puan">0</span><small>puan</small></div>
     <div class="sure"><span><em style="font-style:normal">Vardiya</em><em style="font-style:normal" id="sureYazi">2:30</em></span><div class="bar"><i id="sureBar" style="width:100%"></i></div></div>
-    <button id="erkenBitir" style="border:0;border-radius:10px;padding:6px 10px;font:700 13px inherit;background:rgba(255,255,255,.14);color:#fff;cursor:pointer">Bitir</button>
+    <button id="erkenBitir" style="border:0;border-radius:10px;padding:6px 10px;font:700 13px inherit;background:#1D1B2E;color:#fff;cursor:pointer">Bitir</button>
     <div class="saglik">
       <div class="yakit" id="yakitKutu"><span><em style="font-style:normal">⛽ Yakıt</em><em style="font-style:normal" id="yakitYazi">100</em></span><div class="bar"><i id="yakitBar" style="width:100%"></i></div></div>
       <div class="yakit" id="enerjiKutu"><span><em style="font-style:normal">💪 Enerji</em><em style="font-style:normal" id="enerjiYazi">100</em></span><div class="bar"><i id="enerjiBar" style="width:100%"></i></div></div>
@@ -205,8 +205,12 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
   </div>
 </div>
 
+<script src="kc-ses.js"></script>
 <script>
 (function(){
+  // Sesler (kc-ses.js yüklenemezse oyun sessiz çalışır)
+  var SES = function(a){ try{ window.KcSes && KcSes.cal(a); }catch(e){} };
+  try{ if(window.KcSes){ KcSes.muzik('vardiya'); KcSes.dugme('left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0))'); } }catch(e){}
   // ---------- Ayarlar ----------
   var SURE = 150;                 // vardiya (sn)
   var NX = 6, NY = 7;             // kavşak ızgarası
@@ -234,6 +238,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
     var h = '<div class="kc-odul">' + (r.kredi ? '🪙 +' + r.kredi + ' puan' : '🪙 Bugünlük oyun puanı sınırı doldu') +
       (r.sira ? ' · Haftalık ' + r.sira + '.' : '') + '</div>';
     if(r.etkinlik) h += '<div class="kc-gorev">'+esc(r.etkinlik.emoji+' '+r.etkinlik.ad)+': ekstra puan kazandın</div>';
+    if((r.gorev||[]).length) setTimeout(function(){ SES('gorev'); }, 900);
     (r.gorev||[]).forEach(function(g){ h += '<div class="kc-gorev">🎯 Görev tamam: ' + esc(g.ad) + ' (+' + g.odul + ')</div>'; });
     h += '<small>Bu haftanın en iyileri</small>';
     h += (r.ilk||[]).map(function(x,i){ return '<div class="'+(x.sen?'sen':'')+'"><span>'+(i+1)+'. '+esc(x.sen?'Sen':x.ad)+'</span><b>'+x.s+'</b></div>'; }).join('');
@@ -252,7 +257,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
   try{ var _e=JSON.parse(localStorage.getItem('kc-etk')||'null'); if(_e){ var k=document.getElementById('etkinlikKutu'); k.style.display='block'; k.textContent=_e.emoji+' Bu hafta: '+_e.ad+' · '+_e.aciklama; } }catch(_){}
   // Uygulama hareket algılayınca oyunu durdurur (Kurye Club güvenli oyun)
   var APP_KILIT = false;
-  window.kcKilit = function(k){ APP_KILIT = !!k; };
+  window.kcKilit = function(k){ APP_KILIT = !!k; try{ window.KcSes && KcSes.duraklat(k); }catch(e){} if(k) SES('kilit'); };
 
   var canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
   var $ = function(id){ return document.getElementById(id); };
@@ -333,13 +338,14 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
     });
   }
   function kabulEt(no){
-    if(S.aktif.length>=MAX_TASIMA){ durumYaz('En fazla '+MAX_TASIMA+' iş taşıyabilirsin. Önce birini teslim et.'); return; }
+    if(S.aktif.length>=MAX_TASIMA){ SES('yanlis'); durumYaz('En fazla '+MAX_TASIMA+' iş taşıyabilirsin. Önce birini teslim et.'); return; }
     var i=S.yeni.findIndex(function(o){return o.no===no}); if(i<0) return;
     var o=S.yeni.splice(i,1)[0];
     o.durum='kabul'; o.kabulT=S.t; o.hazirT=S.t+o.hazirlik;
     // Teslim süresi: hazırlık tahmini + mesafeye göre makul süre
     o.sureSiniri = S.t + o.tahmin + 10 + o.mesafe*1.6 + Math.abs(S.kur.x-yerId(o.isletme).x)*0.6 + Math.abs(S.kur.y-yerId(o.isletme).y)*0.6;
     S.aktif.push(o);
+    SES('sec');
     durumYaz(yerId(o.isletme).ikon+' '+yerId(o.isletme).ad+' siparişini aldın. Haritada işletmeye dokun.');
     ciz(); listeleriGuncelle();
   }
@@ -382,7 +388,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
     S.aktif.forEach(function(o){
       if(o.durum==='kabul'&&o.isletme===y.id){
         if(S.t>=o.hazirT){
-          o.durum='alindi'; o.alT=S.t;
+          o.durum='alindi'; o.alT=S.t; SES('dogru');
           durumYaz('📦 Paketi aldın. Teslim adresine dokun: '+yerId(o.adres).ikon+' '+yerId(o.adres).ad);
         } else {
           durumYaz('⏳ Paket hazırlanıyor, '+Math.ceil(o.hazirT-S.t)+' sn kaldı. Beklemek ya da başka iş almak senin elinde.');
@@ -399,6 +405,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
 
   // Kurye Club avantaj anı: kurye üyeliği sayesinde indirimli alır
   function avantajAni(metin, tl, tur){
+    SES('para');
     S.tasarruf+=tl; S.avantajlar[tur]++;
     $('avantajYazi').textContent=metin;
     $('avantajTasarruf').textContent='Kurye Club ile '+tl+' ₺ tasarruf ettin';
@@ -420,6 +427,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
 
   // ---------- Güvenlik kapısı ----------
   function kapiAc(tes){
+    SES('kapi');
     S.kapida={siparisler:tes, bekle:0};
     $('kapiBaslik').textContent=yerId(tes[0].adres).ad;
     $('kapiKayit').textContent='';
@@ -465,6 +473,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
     var yildiz=gecikme<=0?5:(gecikme<=8?4:(gecikme<=15?3:2));
     if(yildiz>=(ETK.bahsis?4:5)&&Math.random()<(ETK.bahsis?0.85:0.45)){ var b=5*Math.ceil(rasgele(1,3))*(ETK.bahsis?2:1); puan+=b; not.push('bahşiş +'+b); }
     S.ist.teslim++;
+    SES('para');
     puanEkle(puan, '+'+puan);
     durumYaz('✅ Teslim edildi ('+'★'.repeat(yildiz)+') · '+not.join(', '));
     listeleriGuncelle();
@@ -482,15 +491,15 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
   function olaylar(){
     if(S.t-S.sonOlay<14) return;
     S.sonOlay=S.t;
-    if(!S.lastikOlduMu&&S.t>35&&Math.random()<0.35){ S.lastik=true; S.lastikOlduMu=true; durumYaz('🔧 Lastik patladı! Hızın düştü. Anlaşmalı servise uğra.'); return; }
-    if(Math.random()<(ETK.yagmur?0.85:0.45)&&!S.yagmur){ S.yagmur=1; S.yagmurBitis=S.t+rasgele(12,20); $('hava').style.display='block'; durumYaz('🌧️ Yağmur başladı, yavaşla.'); return; }
+    if(!S.lastikOlduMu&&S.t>35&&Math.random()<0.35){ S.lastik=true; S.lastikOlduMu=true; SES('uyari'); durumYaz('🔧 Lastik patladı! Hızın düştü. Anlaşmalı servise uğra.'); return; }
+    if(Math.random()<(ETK.yagmur?0.85:0.45)&&!S.yagmur){ S.yagmur=1; S.yagmurBitis=S.t+rasgele(12,20); $('hava').style.display='block'; SES('uyari'); durumYaz('🌧️ Yağmur başladı, yavaşla.'); return; }
     if(Math.random()<0.6&&Object.keys(S.kapali).length===0){
       for(var d=0; d<20; d++){
         var a={x:Math.floor(rasgele(0,NX)), y:Math.floor(rasgele(0,NY))};
         var yon=Math.random()<.5?[1,0]:[0,1]; var b={x:a.x+yon[0], y:a.y+yon[1]};
         if(b.x>=NX||b.y>=NY) continue;
         S.kapali[kenarAnahtar(a,b)]=true; S.kapaliBitis=S.t+rasgele(14,22);
-        durumYaz('🚧 Bir sokak yol çalışması nedeniyle kapandı.'); break;
+        SES('korna'); durumYaz('🚧 Bir sokak yol çalışması nedeniyle kapandı.'); break;
       }
     }
   }
@@ -511,7 +520,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
         if(oran>=1){
           S.kur.x=h.x; S.kur.y=h.y; S.yol.shift(); S.adimT=0;
           S.yakit=Math.max(0,S.yakit-YAKIT_HUCRE);
-          if(S.yakit<=0) durumYaz('⛽ Yakıtın bitti, motoru itiyorsun. En yakın istasyona git.');
+          if(S.yakit<=0){ SES('yanlis'); } if(S.yakit<=0) durumYaz('⛽ Yakıtın bitti, motoru itiyorsun. En yakın istasyona git.');
           if(!S.yol.length) vardin();
         }
       } else { S.kur.px=S.kur.x; S.kur.py=S.kur.y; }
@@ -754,6 +763,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
     requestAnimationFrame(dongu);
   }
   function bitir(){
+    SES('bitir');
     S.calisiyor=false; S.bitti=true; HZ.kilit=false; $('kilitKatman').hidden=true;
     var en=0; try{ en=+localStorage.getItem('kc-vardiya-en')||0; }catch(e){}
     var rekor=S.puan>en; if(rekor){ try{ localStorage.setItem('kc-vardiya-en',S.puan); }catch(e){} en=S.puan; }

@@ -140,8 +140,11 @@ h1{margin:0;font-size:40px;line-height:1;font-weight:800;color:var(--yelek)}
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="kc-ses.js"></script>
 <script>
 'use strict';
+const SES = a => { try { window.KcSes && KcSes.cal(a); } catch (e) {} };
+try { if (window.KcSes) { KcSes.muzik('paket'); KcSes.dugme('left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0))'); } } catch (e) {}
 /* =========================================================
    PAKET USTASI — Kurye Club
    Her seviye, kasanın rastgele (ama seviyeye göre sabit) parçalara
@@ -253,6 +256,7 @@ function oduluCiz(r) {
   let h = `<div class="kc-odul">🪙 ${r.kredi ? '+' + r.kredi + ' puan' : 'Bugünlük oyun puanı sınırı doldu'} · ${r.sayilanPuan} skor${r.sira ? ' · Haftalık ' + r.sira + '.' : ''}</div>`;
   if (r.gunlukSira) h += `<div class="kc-gorev">📅 Bugünün yükünü tamamlayan ${r.gunlukSira}. kurye sensin!</div>`;
   if (r.etkinlik) h += `<div class="kc-gorev">${esc(r.etkinlik.emoji + ' ' + r.etkinlik.ad)}: ekstra puan kazandın</div>`;
+  if ((r.gorev || []).length) setTimeout(() => SES('gorev'), 900);
   (r.gorev || []).forEach(g => { h += `<div class="kc-gorev">🎯 Görev tamam: ${esc(g.ad)} (+${g.odul})</div>`; });
   el.innerHTML = h;
 }
@@ -263,6 +267,8 @@ function etkinlik(r) {
 }
 // Uygulama hareket algılayınca oyunu durdurur (Kurye Club güvenli oyun)
 window.kcKilit = function (k) {
+  try { window.KcSes && KcSes.duraklat(k); } catch (e) {}
+  if (k) SES('kilit');
   if (k && !S.duraklaBas) S.duraklaBas = performance.now();
   if (!k && S.duraklaBas) { S.durakla += performance.now() - S.duraklaBas; S.duraklaBas = 0; }
 };
@@ -374,6 +380,7 @@ function ipucuVer(otomatik) {
   if (!k) { toast('Bir koliyi geri al, yeniden dene'); return; }
   const p = S.sv.parcalar[k.id], hedef = normalle(p);
   for (let i = 0; i < 4 && JSON.stringify(k.h) !== JSON.stringify(hedef); i++) k.h = dondur(k.h);
+  if (!otomatik) SES('sec');
   S.ipucuHedef = { id: k.id, x: Math.min(...p.map(c => c[0])), y: Math.min(...p.map(c => c[1])) };
   if (!otomatik) { S.ipucu--; $('ipucuBtn').textContent = '💡 ' + S.ipucu; if (!S.ipucu) $('ipucuBtn').disabled = true; }
   ciz();
@@ -392,6 +399,7 @@ function yerlestir(k, ox, oy) {
   k.yer = { x: ox, y: oy };
   k.h.forEach(([x, y]) => { S.yer[oy + y][ox + x] = k.id; });
   S.hamle++;
+  SES('yerlestir');
   if (S.ipucuHedef && S.ipucuHedef.id === k.id) S.ipucuHedef = null;
   if (ILERLEME.rehber !== 1 && !S.gunluk) {
     // İlk oyunda adım adım yol göster
@@ -406,6 +414,7 @@ function yerlestir(k, ox, oy) {
 function geriAl(k) {
   k.h.forEach(([x, y]) => { S.yer[k.yer.y + y][k.yer.x + x] = null; });
   k.yer = null; S.hamle++;
+  SES('geri');
   ciz();
 }
 
@@ -428,6 +437,7 @@ window.addEventListener('pointermove', e => {
     D.hayalet.classList.add('surukle');
     document.body.appendChild(D.hayalet);
     D.el.style.opacity = '0.25';
+    SES('tik');
   }
   // Parmak koliyi biraz yukarıda tutsun (parmak altını kapatmasın)
   const x = e.clientX - D.tx * HC - HC / 2, y = e.clientY - D.ty * HC - HC / 2 - 40;
@@ -453,19 +463,21 @@ window.addEventListener('pointerup', () => {
   const d = D; D = null;
   if (!d.kaydi) { // dokunma: döndür
     d.k.h = dondur(d.k.h); S.hamle++;
+    SES('dondur');
     ciz();
     return;
   }
   d.hayalet.remove();
   document.querySelectorAll('.hc.onizle').forEach(c => c.classList.remove('onizle', 'olmaz'));
   if (d.hedef) yerlestir(d.k, d.hedef.ox, d.hedef.oy);
-  else { ciz(); toast('Buraya sığmadı'); }
+  else { ciz(); SES('yanlis'); toast('Buraya sığmadı'); }
 });
 window.addEventListener('pointercancel', () => { if (D && D.hayalet) D.hayalet.remove(); D = null; ciz(); });
 
 /* ---------- Bitiş ---------- */
 function bitir() {
   S.bitti = true; clearInterval(S.zaman);
+  setTimeout(() => SES('bitir'), 300);
   const sn = Math.max(1, gecen());
   const hedef = S.koliler.length * 7;
   let yildiz = sn <= hedef ? 3 : sn <= hedef * 2 ? 2 : 1;

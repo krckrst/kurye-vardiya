@@ -240,7 +240,10 @@ button:focus-visible{outline:3px solid var(--yelek);outline-offset:2px}
 </section>
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+<script src="kc-ses.js"></script>
 <script>
+// Sesler (kc-ses.js yüklenemezse oyun sessiz çalışır)
+const SES = a => { try { window.KcSes && KcSes.cal(a); } catch (e) {} };
 /* =========================================================
    KURYE VARDİYASI 2 — prototip
    Şehir ızgarası, motor/araç modu, NPC kuryeler, konuşma balonları
@@ -728,7 +731,7 @@ function skorGonder(olay, veri) {
     .then(r => r.json()).catch(() => null);
 }
 // Uygulama hareket algılayınca oyunu durdurur (Kurye Club güvenli oyun)
-window.kcKilit = k => { H.kilit = !!k; if (!k) H.durduAt = 0; };
+window.kcKilit = k => { H.kilit = !!k; if (!k) H.durduAt = 0; try { window.KcSes && KcSes.duraklat(k); } catch (e) {} if (k) SES('kilit'); };
 function etkinlikUygula(r) {
   const e = r && r.etkinlik; if (!e) return;
   try { localStorage.setItem('kc-etk', JSON.stringify(e)); } catch (_) {}
@@ -747,6 +750,7 @@ function kcSonucCiz(r) {
 function basla(mod) {
   if (!G.ready) { setTimeout(() => basla(mod), 200); return; }
   skorGonder('basla', { mod }).then(etkinlikUygula);
+  try { if (window.KcSes) KcSes.muzik('mahalle'); } catch (e) {}
   try { localStorage.setItem('kv2-mod', mod); } catch (e) {}
   const s = G.scene;
   if (G.player) yokEt(G.player);
@@ -886,6 +890,7 @@ function siparisOlustur() {
 }
 async function siparisTeklif() {
   G.offering = true; G.busy = true; G.paused = true;
+  SES('uyari');
   const o = siparisOlustur();
   const html = `<div class="offer"><div class="ic">${o.dukkan.special.ikon}</div><div><b>${esc(o.dukkan.special.ad)}</b>
     <span>Al: ${esc(o.dukkan.adres)}</span><span>Teslim: ${esc(o.adres)}</span>
@@ -900,6 +905,7 @@ async function siparisTeklif() {
 }
 async function siparisAl() {
   const o = G.order; G.busy = true; G.paused = true;
+  SES('dogru');
   await soyle(o.dukkan.anchor, pick(ALIS[o.tip]), 2000, o.dukkan.special.ad);
   G.paused = false;
   await ilerleme('Sipariş hazırlanıyor', o.prep / G.rate * 1000);
@@ -909,12 +915,14 @@ async function siparisAl() {
 }
 async function siparisTeslim() {
   const o = G.order; G.busy = true; G.paused = true;
+  SES('kapi');
   if (o.site) await siteKapisi();
   const gec = G.time > o.son;
   await oyuncuDer(o.tip === 'eczane' ? 'Eczaneden geldim, ilacınız!' : 'Kurye geldi, siparişiniz kapıda!', 1300);
   const sahne = gec ? GEC_SAHNE : sahneSec(o.musteri, o.tip === 'eczane' ? 'eczane' : 'motor');
   const sec2 = await konus(o.anchor, o.musteri, sahne);
   const taban = gec ? Math.round(o.ucret * 0.8) : o.ucret, bahsis = sec2.tip || 0;
+  SES('para');
   G.money += taban + bahsis; G.stats.teslim++; G.stats.bahsis += bahsis; gec ? G.stats.gec++ : G.stats.zamaninda++;
   toast(`+₺${taban}${bahsis ? ` ve ₺${bahsis} bahşiş` : ''}${gec ? ' (geç teslim)' : ''}`);
   G.order = null; G.busy = false; G.paused = false; G.offerAt = performance.now() + 1800;
@@ -968,6 +976,7 @@ function paketleriHazirla() {
   }));
 }
 async function kargoBasla() {
+  SES('korna');
   G.pkgs = paketleriHazirla();
   G.busy = true; G.paused = true;
   const A = places.aktarma.anchor;
@@ -1066,6 +1075,7 @@ function paketBitir(p, durum, ucret) {
   p.durum = durum; G.money += ucret;
   if (durum === 'teslim') G.stats.teslim++; if (durum === 'komsu') { G.stats.komsu++; G.stats.teslim++; } if (durum === 'sube') G.stats.sube++;
   if (G.sel === p) G.sel = null;
+  SES(ucret > 0 ? 'para' : 'yanlis');
   toast(`+₺${ucret}`);
 }
 function kargoBittiMi() {
@@ -1234,6 +1244,7 @@ function hudGuncelle() {
 
 /* ---------------- Rapor ---------------- */
 function bitir(neden) {
+  SES('bitir');
   G.running = false; G.paused = true; G.busy = true;
   sheet.hidden = true; $('hud').hidden = true;
   try { localStorage.setItem('kv2-dost', JSON.stringify(G.dost)); } catch (e) {}
@@ -1313,6 +1324,7 @@ if ('geolocation' in navigator) {
 }
 $('hizDene').onclick = () => { H.sahteBitis = performance.now() + 3000; hizGuncelle(20); };
 
+try { if (window.KcSes) KcSes.dugme('right:12px;top:calc(140px + env(safe-area-inset-top,0))'); } catch (e) {}
 /* Menüde bu haftanın semti ve etkinliği */
 $('semtYazi').innerHTML = `Bu hafta <b style="color:var(--yelek)">${esc(SEMT.ad)}</b> semtindesin. Bugün hangi işi yapıyorsun?`;
 try { const e = JSON.parse(localStorage.getItem('kc-etk') || 'null'); if (e) { const k = $('etkinlikKutu'); k.style.display = 'block'; k.textContent = e.emoji + ' Bu hafta: ' + e.ad + ' · ' + e.aciklama; } } catch (_) {}
