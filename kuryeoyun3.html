@@ -61,6 +61,9 @@ h1{margin:0;font-size:40px;line-height:1;font-weight:800;color:var(--yelek)}
 .mkart .bilgiSat{color:#5B6070;font-size:15px}
 .bilmece{background:#F5F5FA;border-radius:14px;padding:12px;margin:14px 0;font-size:14px;text-align:left}
 .bilmece b{color:var(--mor2)}
+.kc-odul{background:linear-gradient(135deg,#F5B83D,#F2D21B);color:#1F2340;font-weight:800;border-radius:12px;padding:10px 12px;margin-top:10px;font-size:14px}
+.kc-gorev{background:rgba(21,128,61,.12);color:#15803D;font-weight:700;border-radius:10px;padding:8px 10px;margin-top:6px;font-size:13px}
+.kc-soluk{display:block;margin-top:10px;font-size:12.5px;color:#6B7088}
 .promo{background:#FFF7ED;color:#9A3412;border-radius:14px;padding:10px 12px;font-size:14px;font-weight:600;margin-bottom:14px}
 .mkart .btn{width:100%;margin-top:8px}
 .toast{position:fixed;left:50%;top:90px;transform:translateX(-50%);background:var(--yesil);color:#fff;padding:8px 16px;border-radius:20px;font-weight:800;font-size:18px;opacity:0;transition:opacity .2s, top .2s;pointer-events:none;z-index:5}
@@ -98,8 +101,9 @@ h1{margin:0;font-size:40px;line-height:1;font-weight:800;color:var(--yelek)}
     <h2 id="bTitle">Tebrikler!</h2>
     <div class="yildiz" id="bYildiz">⭐⭐⭐</div>
     <div class="bilgiSat" id="bBilgi"></div>
+    <div id="bOdul"></div>
     <div class="bilmece" id="bBilmece"></div>
-    <div class="promo">⛽ Kurye Club'da akaryakıtta %4'e varan indirim seni bekliyor.</div>
+    <div class="promo">⛽ Kurye Club'da akaryakıtta indirim seni bekliyor.</div>
     <button class="btn ana" id="sonrakiBtn">Sonraki seviye</button>
     <button class="btn ikincil" id="menuBtn" style="background:#ECEDF2;color:#1D1F27">Seviyeler</button>
   </div>
@@ -155,17 +159,25 @@ let ILERLEME = kayitOku(); // { acik: 1, yildiz: {1:3} }
 if (!ILERLEME.acik) ILERLEME.acik = 1;
 if (!ILERLEME.yildiz) ILERLEME.yildiz = {};
 
-/* Admin paneline oyun olayları (uygulama ?kid= ile açar) */
-const OLAY_ADRESI = 'https://europe-west1-kurye-avantaj-platformu-zhwg6b.cloudfunctions.net/oyunOlay';
-const KID = (new URLSearchParams(location.search).get('kid') || '').trim();
-function olayGonder(olay, veri) {
-  if (!KID) return;
-  try {
-    fetch(OLAY_ADRESI, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ kid: KID, oyun: 'kelime', olay, veri: veri || {} }) }).catch(() => {});
-  } catch (e) {}
+/* Skor sunucusu (uygulama ?s=OTURUM ile açar; hile korumalı) */
+const SKOR_ADRESI = 'https://europe-west1-kurye-avantaj-platformu-zhwg6b.cloudfunctions.net/oyunSkor';
+const SID = (new URLSearchParams(location.search).get('s') || '').trim();
+function skorGonder(olay, veri) {
+  if (!SID) return Promise.resolve(null);
+  return fetch(SKOR_ADRESI, { method: 'POST', headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ s: SID, olay, veri: veri || {} }) })
+    .then(r => r.json()).catch(() => null);
 }
-olayGonder('oyun_acildi', {});
+const escH = x => String(x).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function oduluCiz(r) {
+  const el = $('bOdul');
+  if (!el) return;
+  if (!SID) { el.innerHTML = ''; return; }
+  if (!r || r.gecersiz || r.hata) { el.innerHTML = '<span class="kc-soluk">Bu bölüm sıralamaya sayılmadı.</span>'; return; }
+  let h = `<div class="kc-odul">🪙 ${r.kredi ? '+' + r.kredi + ' kredi' : 'Bugünlük oyun kredisi limiti doldu'} · +${r.sayilanPuan} puan${r.sira ? ' · Haftalık ' + r.sira + '.' : ''}</div>`;
+  (r.gorev || []).forEach(g => { h += `<div class="kc-gorev">🎯 Görev tamam: ${escH(g.ad)} (+${g.odul})</div>`; });
+  el.innerHTML = h;
+}
 
 /* ---------------- Tahta üretimi ---------------- */
 function tahtaUret(sv) {
@@ -368,7 +380,7 @@ function seviyeAc(i) {
   clearInterval(S.zaman);
   S.zaman = setInterval(sureYaz, 500); sureYaz();
   requestAnimationFrame(boyutla);
-  olayGonder('seviye_basladi', { seviye: i + 1 });
+  skorGonder('basla', { seviye: i + 1 });
 }
 function gecen() { return Math.floor((performance.now() - S.bas) / 1000); }
 function sureMetni(s) { return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
@@ -384,7 +396,8 @@ function bitir() {
   ILERLEME.yildiz[S.sv + 1] = Math.max(eski, yildiz);
   ILERLEME.acik = Math.max(ILERLEME.acik, Math.min(SEVIYELER.length, S.sv + 2));
   kayitYaz(ILERLEME);
-  olayGonder('seviye_bitti', { seviye: S.sv + 1, sure: sn, yildiz });
+  if ($('bOdul')) $('bOdul').innerHTML = SID ? '<span class="kc-soluk">Puanın kaydediliyor…</span>' : '';
+  skorGonder('bitir', { seviye: S.sv + 1, yildiz }).then(oduluCiz);
   setTimeout(() => {
     $('bTitle').textContent = S.sv === SEVIYELER.length - 1 ? 'Usta Kurye oldun! 🏆' : 'Tebrikler!';
     $('bYildiz').textContent = '⭐'.repeat(yildiz) + '☆'.repeat(3 - yildiz);

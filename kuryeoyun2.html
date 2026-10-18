@@ -428,12 +428,12 @@ const CEVAP = ['Sana da kolay gelsin {h}!', 'Eyvallah {h}!', 'İyi gidiyor, sağ
 const NPC_IKILI = [
   ['Çay ocağına geliyor musun?', 'Şu paketi bırakayım, geliyorum!'],
   ['Bugün kaç paket attın {h}?', 'On iki, daha yarı yoldayım.'],
-  ['Yakıt anlaşmasını yaptın mı?', 'Yaptım, istasyonda %4 düşüyor.'],
+  ['Yakıt anlaşmasını yaptın mı?', 'Yaptım, istasyonda indirim hemen düşüyor.'],
   ['Navigasyon beni yine yanlış sokağa soktu.', 'Numaralara bak {h}, alt taraf tek gidiyor.'],
   ['Lastiğim patladı sandım, korktum.', 'Servise uğra {h}, %15 indirim var.']
 ];
 const CAY_SOHBET = [
-  [['K', 'İstasyonda Kurye Club anlaşmasıyla %4 indirim alıyorum, ayda epey tutuyor.'], ['R', 'Ben de uygulamadan başvurdum, iki dakika sürdü.']],
+  [['K', 'İstasyonda Kurye Club anlaşmasıyla indirim alıyorum, ayda epey tutuyor.'], ['R', 'Ben de uygulamadan başvurdum, iki dakika sürdü.']],
   [['K', 'Sitede güvenlik eskiden kaskı çıkar diyordu.'], ['R', 'Kurye Kartı’nı okutuyorsun, fotoğrafın çıkıyor, geçiyorsun.']],
   [['K', 'Dün gece acil kurye ilanı düştü, bir saatte işe başladım.'], ['R', 'Acil işe hazırım’ı açık tutacaksın, bölgene düşüyor.']],
   [['R', 'Kargocu arkadaşlar önce arıyor, boşa kapı çalmıyorlar.'], ['K', 'Evet, yarım saat kazandırıyor.']],
@@ -671,8 +671,26 @@ $('btnNav').onclick = navigasyon;
 $('btnList').onclick = () => { if (!G.busy) manifestAc(); };
 $('btnCall').onclick = () => { if (!G.busy && G.sel) ara(G.sel); else if (!G.sel) toast('Önce listeden bir paket seç.'); };
 
+/* Skor sunucusu (uygulama ?s=OTURUM ile açar; hile korumalı) */
+const SKOR_ADRESI = 'https://europe-west1-kurye-avantaj-platformu-zhwg6b.cloudfunctions.net/oyunSkor';
+const SID = (new URLSearchParams(location.search).get('s') || '').trim();
+function skorGonder(olay, veri) {
+  if (!SID) return Promise.resolve(null);
+  return fetch(SKOR_ADRESI, { method: 'POST', headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ s: SID, olay, veri: veri || {} }) })
+    .then(r => r.json()).catch(() => null);
+}
+function kcSonucCiz(r) {
+  const el = document.getElementById('kcSonuc');
+  if (!el) return;
+  if (!r || r.gecersiz || r.hata) { el.textContent = 'Bu vardiya sıralamaya sayılmadı.'; return; }
+  el.innerHTML = `🪙 ${r.kredi ? '+' + r.kredi + ' kredi' : 'Bugünlük oyun kredisi limiti doldu'} · +${r.sayilanPuan} puan${r.sira ? ' · Haftalık ' + r.sira + '.' : ''}`
+    + (r.gorev || []).map(g => `<br>🎯 Görev tamam: ${esc(g.ad)} (+${g.odul})`).join('');
+}
+
 function basla(mod) {
   if (!G.ready) { setTimeout(() => basla(mod), 200); return; }
+  skorGonder('basla', { mod });
   try { localStorage.setItem('kv2-mod', mod); } catch (e) {}
   const s = G.scene;
   if (G.player) yokEt(G.player);
@@ -1013,7 +1031,7 @@ async function yakitAl() {
   const litre = (100 - G.fuel) / 100 * G.tankL;
   if (litre < 0.5) { await soyle(A, 'Depon dolu, kolay gelsin!', 1500, 'Pompacı'); G.busy = false; G.paused = false; return; }
   const normal = litre * LITRE, ind = normal * 0.04, odenecek = Math.round(normal - ind);
-  await soyle(A, 'Kurye Club anlaşmalı mısın? %4 indirimi hemen düşüyorum.', 2000, 'Pompacı');
+  await soyle(A, 'Kurye Club anlaşmalı mısın? İndirimi hemen düşüyorum.', 2000, 'Pompacı');
   const i = await sec(baslik(`${litre.toFixed(1)} litre, normalde ₺${Math.round(normal)}`), [`Depoyu doldur: ₺${odenecek}`, 'Vazgeç'], 0);
   if (i === 0) {
     G.fuel = 100; G.money -= odenecek; G.stats.yakitTL += odenecek; G.stats.indirim += ind; G.uyariYakit = false;
@@ -1182,10 +1200,11 @@ function bitir(neden) {
     <p class="alt">${G.mod === 'motor' ? 'Motorlu kurye' : 'Araçlı kurye'}, ${fmt(G.time)}'da kapattın. ${S.sohbet} kişiyle sohbet ettin, ${S.selam} kuryeyle selamlaştın, navigasyona ${S.nav} kez baktın.</p>
     <div class="rapor-g">${g}</div>
     ${dost ? `<div class="dostlar"><b>Mahallede dostların</b><br>${dost}</div>` : ''}
-    ${tamam ? '<div class="puan">Vardiyayı tamamladın: +10 puan</div>' : ''}
+    ${SID ? '<div class="puan" id="kcSonuc">Puanın kaydediliyor…</div>' : (tamam ? '<div class="puan">Vardiyayı tamamladın! Kredi ve sıralama Kurye Club uygulamasında sayılır.</div>' : '')}
     <div class="rapor-b"><button data-r="ayni">Tekrar oyna</button><button class="ikincil" data-r="diger">${G.mod === 'motor' ? 'Araçlı kuryeyi dene' : 'Motorlu kuryeyi dene'}</button></div></div>`;
   $('report').scrollTop = 0;
   $('report').hidden = false;
+  skorGonder('bitir', { teslim: S.teslim, tamam }).then(kcSonucCiz);
   $('report').onclick = e => { const b = e.target.closest('button'); if (!b) return; basla(b.dataset.r === 'ayni' ? G.mod : (G.mod === 'motor' ? 'arac' : 'motor')); };
 }
 

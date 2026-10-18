@@ -91,6 +91,8 @@ canvas{display:block;width:100%;touch-action:none}
 .sira div{display:flex;justify-content:space-between;padding:6px 10px;border-radius:10px;font-size:14px}
 .sira div.sen{background:rgba(72,52,212,.12);font-weight:700}
 .sira small{display:block;font-size:11.5px;color:var(--soluk);margin:4px 2px 6px}
+.kc-odul{background:linear-gradient(135deg,#F5B83D,#F2D21B);color:#1F2340;font-weight:800;border-radius:12px;padding:10px 12px;margin-bottom:8px;justify-content:center!important}
+.kc-gorev{background:rgba(21,128,61,.12);color:#15803D;font-weight:700}
 .puanuc{position:fixed;font-weight:800;font-size:20px;pointer-events:none;z-index:5;animation:uc 1.1s ease-out forwards}
 @keyframes uc{0%{opacity:0;transform:translateY(0) scale(.8)}15%{opacity:1;transform:translateY(-6px) scale(1.1)}100%{opacity:0;transform:translateY(-46px) scale(1)}}
 .yakit + .yakit{margin-top:6px}
@@ -210,20 +212,31 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
   var YAKIT_HUCRE = 2.2;          // hücre başı yakıt
   var MAX_TASIMA = 2;
 
-  // ---------- Admin paneline oyun olayları ----------
-  // Uygulama oyunu ?kid=KURYEID ile açar. ID yoksa (tarayıcıda deneme) hiçbir şey gönderilmez.
-  var OLAY_ADRESI = 'https://europe-west1-kurye-avantaj-platformu-zhwg6b.cloudfunctions.net/oyunOlay';
-  var KID = '';
-  try { KID = (new URLSearchParams(location.search).get('kid') || '').trim(); } catch(e) {}
-  function olayGonder(olay, veri){
-    if(!KID) return;
-    try {
-      fetch(OLAY_ADRESI, { method:'POST', keepalive:true, headers:{'Content-Type':'text/plain'},
-        body: JSON.stringify({ kid:KID, oyun:'vardiya', olay:olay, veri:veri||{} }) }).catch(function(){});
-    } catch(e) {}
+  // ---------- Skor sunucusu (hile korumalı) ----------
+  // Uygulama oyunu ?s=OTURUM ile açar. Oturum yoksa (tarayıcıda deneme) skor gönderilmez.
+  var SKOR_ADRESI = 'https://europe-west1-kurye-avantaj-platformu-zhwg6b.cloudfunctions.net/oyunSkor';
+  var SID = '';
+  try { SID = (new URLSearchParams(location.search).get('s') || '').trim(); } catch(e) {}
+  function skorGonder(olay, veri){
+    if(!SID) return Promise.resolve(null);
+    return fetch(SKOR_ADRESI, { method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({ s:SID, olay:olay, veri:veri||{} }) })
+      .then(function(r){ return r.json(); }).catch(function(){ return null; });
+  }
+  function esc(x){ return String(x).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function siraCiz(r){
+    var el = $('sira');
+    if(!SID){ el.innerHTML = '<small>Haftalık sıralama ve kredi, Kurye Club uygulamasında oynayınca sayılır.</small>'; return; }
+    if(!r){ el.innerHTML = '<small>Skor gönderilemedi. İnternet bağlantını kontrol et.</small>'; return; }
+    if(r.gecersiz){ el.innerHTML = '<small>Bu tur sıralamaya sayılmadı.</small>'; return; }
+    var h = '<div class="kc-odul">' + (r.kredi ? '🪙 +' + r.kredi + ' kredi' : '🪙 Bugünlük oyun kredisi limiti doldu') +
+      (r.sira ? ' · Haftalık ' + r.sira + '.' : '') + '</div>';
+    (r.gorev||[]).forEach(function(g){ h += '<div class="kc-gorev">🎯 Görev tamam: ' + esc(g.ad) + ' (+' + g.odul + ')</div>'; });
+    h += '<small>Bu haftanın en iyileri</small>';
+    h += (r.ilk||[]).map(function(x,i){ return '<div class="'+(x.sen?'sen':'')+'"><span>'+(i+1)+'. '+esc(x.sen?'Sen':x.ad)+'</span><b>'+x.s+'</b></div>'; }).join('');
+    el.innerHTML = h;
   }
   var baslangicZ = 0;
-  olayGonder('oyun_acildi', {});
 
   var canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
   var $ = function(id){ return document.getElementById(id); };
@@ -365,7 +378,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
   function yakitAl(){
     if(S.yakit>=96){ durumYaz('⛽ Depo zaten dolu.'); return; }
     S.istasyonda=true; S.ist.yakitAlindi++; S.yakitDolum=100-S.yakit;
-    durumYaz('⛽ Anlaşmalı istasyonda %4 indirimle yakıt alıyorsun…');
+    durumYaz('⛽ Anlaşmalı istasyonda indirimli yakıt alıyorsun…');
   }
 
   // Kurye Club avantaj anı: kurye üyeliği sayesinde indirimli alır
@@ -495,7 +508,7 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
         if(S.yakit>=100){
           S.istasyonda=false;
           var tl=Math.max(4,Math.round(S.yakitDolum*0.6));
-          avantajAni('"Kurye Club üyeliğim sayesinde yakıtı %4 indirimli aldım."', tl, 'yakit');
+          avantajAni('"Kurye Club üyeliğim sayesinde yakıtı indirimli aldım."', tl, 'yakit');
           durumYaz('⛽ Depo doldu. Yola devam.');
         }
       }
@@ -721,19 +734,15 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
     if(HZ.denemeIste){ HZ.denemeIste=false; HZ.deneBitis=performance.now(); durumYaz('Deneme: 3 saniye sonra 20 km/s ile gidiyormuş gibi davranacak, sonra duracak.'); }
     siparisUret(); S.sonSiparis=0; listeleriGuncelle(); hud(); boyutla();
     durumYaz('Vardiya başladı. İlk siparişini al!');
-    baslangicZ = Date.now(); olayGonder('vardiya_basladi', {});
+    baslangicZ = Date.now(); skorGonder('basla', {});
     requestAnimationFrame(dongu);
   }
   function bitir(){
     S.calisiyor=false; S.bitti=true; HZ.kilit=false; $('kilitKatman').hidden=true;
     var en=0; try{ en=+localStorage.getItem('kc-vardiya-en')||0; }catch(e){}
     var rekor=S.puan>en; if(rekor){ try{ localStorage.setItem('kc-vardiya-en',S.puan); }catch(e){} en=S.puan; }
-    olayGonder('vardiya_bitti', {
-      puan:S.puan, teslim:S.ist.teslim, zamaninda:S.ist.zamaninda, gec:S.ist.gec,
-      kurye_karti:S.ist.idIle, kaskla:S.ist.kaskla, yakit_alindi:S.ist.yakitAlindi,
-      tasarruf:S.tasarruf, rekor:rekor,
-      sure_dk: Math.round((Date.now() - (baslangicZ || Date.now())) / 60000)
-    });
+    $('sira').innerHTML = SID ? '<small>Skorun kaydediliyor…</small>' : '';
+    skorGonder('bitir', { puan:S.puan, teslim:S.ist.teslim }).then(siraCiz);
     $('sonucAlt').textContent = rekor&&S.puan>0 ? 'Yeni rekorun bu! 🎉' : (S.ist.teslim ? 'Güzel vardiya.' : 'Bir sonraki vardiyada ilk siparişi hemen al.');
     var satir=function(a,b){return '<div class="sonuc-satir"><span>'+a+'</span><b>'+b+'</b></div>';};
     $('sonucDetay').innerHTML =
@@ -741,11 +750,6 @@ button:focus-visible{outline:3px solid var(--serit);outline-offset:2px}
       satir('Zamanında', S.ist.zamaninda) + satir('Kurye ID ile site girişi', S.ist.idIle) +
       satir('💜 Kurye Club ile tasarruf', S.tasarruf+' ₺') +
       satir('En iyi skorun', en);
-    // Örnek sıralama (prototip): gerçek sürümde sunucudan gelecek
-    var ornek=[['Mehmet K. · İstanbul',920],['Ayşe T. · Ankara',870],['Emre D. · İzmir',810],['Burak S. · Bursa',760],['Can Y. · İstanbul',690]];
-    ornek.push(['Sen',S.puan]); ornek.sort(function(a,b){return b[1]-a[1]});
-    $('sira').innerHTML='<small>Haftalık Türkiye sıralaması (örnek veriler, prototip)</small>'+
-      ornek.map(function(r,i){ return '<div class="'+(r[0]==='Sen'?'sen':'')+'"><span>'+(i+1)+'. '+r[0]+'</span><b>'+r[1]+'</b></div>'; }).join('');
     if(S.tasarruf>0){
       $('sonucDetay').innerHTML += '<p style="margin:12px 0 0;font-size:13px">Gerçek hayatta da öyle: uygulamadaki anlaşmalı istasyon, market ve servislerde Kurye Club üyeliğinle indirim al.</p>';
     }
