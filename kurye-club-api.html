@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kurye Club Sipariş API</title>
+<meta name="description" content="POS ve adisyon yazılımları için Kurye Club kuryeli teslimat entegrasyon kılavuzu.">
+<style>
+@font-face{font-family:Manrope;src:url(Manrope-Regular.ttf);font-weight:400}
+@font-face{font-family:Manrope;src:url(Manrope-SemiBold.ttf);font-weight:600}
+@font-face{font-family:Manrope;src:url(Manrope-Bold.ttf);font-weight:700}
+@font-face{font-family:Manrope;src:url(Manrope-ExtraBold.ttf);font-weight:800}
+@font-face{font-family:Bricolage;src:url(Bricolage-ExtraBold.ttf);font-weight:800}
+:root{--mor:#4834D4;--mor-zemin:#EEEBFF;--sari:#F2D21B;--koyu:#1D1B2E;--zemin:#F7F6FB;--kart:#fff;--kenar:#E6E4EF;--metin:#1D1B2E;--soluk:#5B6070;--yesil:#15803D;--kirmizi:#B91C1C;--kod:#15132A;--kod-metin:#E9E7F7}
+@media (prefers-color-scheme:dark){:root{--zemin:#121120;--kart:#1B1A2E;--kenar:#2E2B48;--metin:#EDEBFA;--soluk:#A9A6C2;--mor-zemin:#26224A;--mor:#9C8CFF}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--zemin);color:var(--metin);font:16px/1.6 Manrope,system-ui,sans-serif}
+a{color:var(--mor)}
+.ust{background:#1D1B2E;color:#fff;padding:40px 20px 34px}
+.ic{max-width:920px;margin:0 auto}
+.logo{display:flex;align-items:center;gap:10px;font-family:Bricolage,Manrope,sans-serif;font-weight:800;font-size:20px}
+.logo span{width:34px;height:34px;border-radius:10px;background:var(--sari);display:inline-block}
+h1{font-family:Bricolage,Manrope,sans-serif;font-weight:800;font-size:clamp(32px,6vw,48px);line-height:1.05;letter-spacing:-1px;margin:22px 0 12px}
+h1 em{font-style:normal;color:var(--sari)}
+.ust p{color:#CFCDE0;max-width:640px;margin:0;font-size:17px}
+main{padding:28px 20px 60px}
+h2{font-family:Bricolage,Manrope,sans-serif;font-weight:800;font-size:26px;margin:44px 0 10px;letter-spacing:-.4px}
+h3{font-size:17px;margin:24px 0 6px}
+.kart{background:var(--kart);border:1px solid var(--kenar);border-radius:16px;padding:18px 20px;margin:12px 0}
+.adim{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.adim .kart{margin:0}
+.adim b{display:block;font-size:13px;letter-spacing:1.2px;color:var(--mor)}
+pre{background:var(--kod);color:var(--kod-metin);border-radius:14px;padding:16px 18px;overflow-x:auto;font:13.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;margin:10px 0}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em;background:var(--mor-zemin);padding:1px 6px;border-radius:6px}
+pre code{background:none;padding:0}
+.yontem{display:inline-block;font:800 12px Manrope,sans-serif;padding:3px 8px;border-radius:7px;color:#fff;background:var(--yesil);margin-right:8px}
+.yontem.get{background:#1D4ED8}
+.tablo{overflow-x:auto;border:1px solid var(--kenar);border-radius:14px;background:var(--kart)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--kenar);vertical-align:top}
+th{font-size:12px;letter-spacing:1px;color:var(--soluk);text-transform:uppercase}
+tr:last-child td{border-bottom:none}
+.z{color:var(--kirmizi);font-weight:700;font-size:12px}
+.not{border-left:0;background:var(--mor-zemin);border-radius:14px;padding:14px 16px;margin:14px 0;font-size:15px}
+footer{color:var(--soluk);font-size:14px;border-top:1px solid var(--kenar);padding-top:18px;margin-top:50px}
+</style>
+</head>
+<body>
+<header class="ust">
+  <div class="ic">
+    <div class="logo"><span aria-hidden="true"></span>Kurye Club</div>
+    <h1>Sipariş API · <em>POS entegrasyon kılavuzu</em></h1>
+    <p>POS ya da adisyon yazılımınız siparişi tek bir istekle Kurye Club'a gönderir; sipariş restoranın kendi kuryesine düşer, kurye ilerledikçe durumu size bildiririz.</p>
+  </div>
+</header>
+<main class="ic">
+
+  <h2>Nasıl çalışır</h2>
+  <div class="adim">
+    <div class="kart"><b>01</b>Restoran Kurye Club uygulamasında <em>Siparişler → POS / adisyon bağlantısı</em> bölümünden API anahtarını alır ve POS ayarlarınıza yapıştırır.</div>
+    <div class="kart"><b>02</b>Kurye gerektiren her siparişi <code>POST /siparis</code> ile gönderirsiniz. Aynı <code>harici_id</code> tekrar gelirse yeni sipariş açılmaz.</div>
+    <div class="kart"><b>03</b>Sipariş restoranın ekranına düşer; otomatik atama açıksa vardiyadaki kuryeye kendiliğinden atanır, kuryenin telefonu çalar.</div>
+    <div class="kart"><b>04</b>Durum her değiştiğinde (atandı, yolda, teslim, iptal) webhook adresinize imzalı bir bildirim göndeririz.</div>
+  </div>
+
+  <h2>Adres ve kimlik doğrulama</h2>
+  <pre><code>https://siparisapi-x2nr5cmyqq-ew.a.run.app</code></pre>
+  <p>Her istekte restoranın anahtarını başlıkta gönderin. Anahtar <code>kc_live_</code> ile başlar ve restorana özeldir.</p>
+  <pre><code>X-Api-Key: kc_live_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+Content-Type: application/json</code></pre>
+  <div class="not">Anahtarı yalnızca sunucu tarafında saklayın. Restoran anahtarını yenilediğinde eskisi hemen geçersiz olur; bu durumda <code>401</code> alırsınız.</div>
+
+  <h2>Sipariş gönder</h2>
+  <p><span class="yontem">POST</span><code>/siparis</code></p>
+  <div class="tablo"><table>
+    <thead><tr><th>Alan</th><th>Tür</th><th>Açıklama</th></tr></thead>
+    <tbody>
+      <tr><td><code>harici_id</code> <span class="z">zorunlu</span></td><td>metin (≤64)</td><td>POS'taki benzersiz sipariş numarası. Tekrar gönderimde aynı sipariş döner.</td></tr>
+      <tr><td><code>adres</code> <span class="z">zorunlu</span></td><td>metin (10–400)</td><td>Açık teslimat adresi (mahalle, cadde, no, daire, ilçe).</td></tr>
+      <tr><td><code>adres_tarif</code></td><td>metin (≤300)</td><td>Bina tarifi, kat, kapı kodu.</td></tr>
+      <tr><td><code>enlem</code>, <code>boylam</code></td><td>sayı (isteğe bağlı)</td><td>Teslimat noktasının koordinatı (ör. 40.9865, 29.0281). Gönderilirse akıllı kurye ataması aynı yöne giden siparişleri birleştirir; gönderilmezse adresten konum bulunur.</td></tr>
+      <tr><td><code>musteri_ad</code></td><td>metin (≤80)</td><td>Alıcı adı.</td></tr>
+      <tr><td><code>telefon</code></td><td>metin</td><td>Alıcı telefonu; <code>+90 532…</code>, <code>0532…</code> biçimleri kabul edilir.</td></tr>
+      <tr><td><code>tutar</code></td><td>sayı</td><td>Sipariş tutarı (TL).</td></tr>
+      <tr><td><code>odeme</code></td><td><code>nakit</code> · <code>kart</code> · <code>online</code></td><td>Kapıda nakit / kapıda kart / önceden ödendi. Varsayılan <code>online</code>.</td></tr>
+      <tr><td><code>kaynak</code></td><td><code>yemeksepeti</code> · <code>migros</code> · <code>trendyol</code> · <code>getir</code> · <code>telefon</code> · <code>gelal</code> · <code>web</code> · <code>diger</code></td><td>Siparişin geldiği kanal; restoranın ekranında etiket olarak görünür.</td></tr>
+      <tr><td><code>siparis_no</code></td><td>metin (≤40)</td><td>Ekranda gösterilecek kısa numara (yoksa <code>harici_id</code>).</td></tr>
+      <tr><td><code>not</code></td><td>metin (≤300)</td><td>Müşteri notu.</td></tr>
+      <tr><td><code>webhook_url</code></td><td>https adresi</td><td>Bu sipariş için durum bildirimi adresi. Verilmezse restoranın kayıtlı adresi kullanılır.</td></tr>
+      <tr><td><code>pos_adi</code></td><td>metin (≤40)</td><td>Yazılımınızın adı (ör. "Adisyo").</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Örnek istek</h3>
+  <pre><code>curl -X POST https://siparisapi-x2nr5cmyqq-ew.a.run.app/siparis \
+  -H "X-Api-Key: kc_live_XXXXXXXX" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "harici_id": "ADS-102938",
+    "siparis_no": "2938",
+    "kaynak": "yemeksepeti",
+    "musteri_ad": "Ayşe K.",
+    "telefon": "05321112233",
+    "adres": "Caferağa Mah. Moda Cad. No:54 D:7 Kadıköy",
+    "adres_tarif": "Zile basmayın, kapıda arayın",
+    "enlem": 40.9865,
+    "boylam": 29.0281,
+    "tutar": 260,
+    "odeme": "nakit",
+    "pos_adi": "Adisyo"
+  }'</code></pre>
+  <h3>Cevap</h3>
+  <pre><code>201 Created
+{ "id": "pos_…", "harici_id": "ADS-102938", "durum": "bekliyor", "kontor_bakiye": 412 }</code></pre>
+  <p>Aynı <code>harici_id</code> tekrar gönderilirse <code>200</code> ve <code>"tekrar": true</code> ile mevcut sipariş döner; yeni sipariş açılmaz, ücret alınmaz.</p>
+
+  <h2>Durum sorgula</h2>
+  <p><span class="yontem get">GET</span><code>/siparis/{harici_id}</code></p>
+  <pre><code>{ "id": "pos_…", "harici_id": "ADS-102938", "durum": "yolda",
+  "kurye": { "ad": "Ali Y." }, "olusturma": "2026-10-13T12:31:05Z", "teslim": null }</code></pre>
+  <div class="tablo"><table>
+    <thead><tr><th>Durum</th><th>Anlamı</th></tr></thead>
+    <tbody>
+      <tr><td><code>bekliyor</code></td><td>Restoran ekranında, kurye atanmadı.</td></tr>
+      <tr><td><code>atandi</code></td><td>Kuryeye atandı, paket alınacak.</td></tr>
+      <tr><td><code>yolda</code></td><td>Kurye paketi aldı, yolda.</td></tr>
+      <tr><td><code>teslim</code></td><td>Teslim edildi.</td></tr>
+      <tr><td><code>iptal</code></td><td>İptal edildi.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>İptal et</h2>
+  <p><span class="yontem">POST</span><code>/siparis/{harici_id}/iptal</code></p>
+  <pre><code>{ "neden": "Müşteri vazgeçti" }</code></pre>
+  <p>Teslim edilmiş sipariş iptal edilemez (<code>409</code>). Henüz kuryeye atanmamış siparişin kontörü restorana iade edilir.</p>
+
+  <h2>Durum bildirimi (webhook)</h2>
+  <p>Durum her değiştiğinde webhook adresine <code>POST</code> göndeririz. 8 saniye içinde <code>2xx</code> dönün; içeriği sonra işleyin.</p>
+  <pre><code>POST {webhook_url}
+X-KC-Zaman: 1791880265
+X-KC-Imza: sha256=5f2b…
+Content-Type: application/json
+
+{ "olay": "durum", "harici_id": "ADS-102938", "durum": "teslim",
+  "kurye": { "ad": "Ali Y." }, "zaman": "2026-10-13T12:58:40Z" }</code></pre>
+  <h3>İmzayı doğrulama</h3>
+  <p>İmza, restorana anahtarla birlikte verilen <code>whsec_…</code> webhook imza anahtarıyla, <code>zaman + "." + gövde</code> metninin HMAC-SHA256 değeridir.</p>
+  <pre><code>// Node.js
+const crypto = require("crypto");
+function dogrula(govdeMetni, zaman, imzaBasligi, gizli) {
+  const beklenen = "sha256=" + crypto.createHmac("sha256", gizli)
+    .update(zaman + "." + govdeMetni).digest("hex");
+  const tazeMi = Math.abs(Date.now() / 1000 - Number(zaman)) &lt; 300;
+  return tazeMi &amp;&amp; crypto.timingSafeEqual(Buffer.from(beklenen), Buffer.from(imzaBasligi));
+}</code></pre>
+  <p>Restoran, uygulamadaki <em>Dene</em> düğmesiyle adresinize <code>{"olay":"test"}</code> gönderebilir.</p>
+
+  <h2>Hata kodları</h2>
+  <div class="tablo"><table>
+    <thead><tr><th>Kod</th><th><code>hata</code></th><th>Ne yapmalı</th></tr></thead>
+    <tbody>
+      <tr><td>400</td><td><code>alan_eksik</code></td><td>Zorunlu alanları kontrol edin; <code>mesaj</code> hangi alan olduğunu yazar.</td></tr>
+      <tr><td>401</td><td><code>anahtar_gecersiz</code></td><td>Anahtar yanlış ya da yenilenmiş. Restorandan yeni anahtar isteyin.</td></tr>
+      <tr><td>402</td><td><code>kontor_yok</code></td><td>Restoranın teslimat kontörü bitti; sipariş açılmadı. Restoran kontör yükleyince tekrar gönderin.</td></tr>
+      <tr><td>403</td><td><code>hesap_askida</code></td><td>Restoran hesabı askıda.</td></tr>
+      <tr><td>404</td><td><code>siparis_yok</code> / <code>bulunamadi</code></td><td>Yol ya da <code>harici_id</code> hatalı.</td></tr>
+      <tr><td>409</td><td><code>teslim_edildi</code></td><td>Teslim edilmiş sipariş iptal edilemez.</td></tr>
+      <tr><td>500</td><td><code>sunucu</code></td><td>Birkaç saniye sonra aynı <code>harici_id</code> ile tekrar deneyin (çift sipariş oluşmaz).</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Ücretlendirme</h2>
+  <p>API'den açılan her sipariş restoranın hesabından 1 teslimat kontörü düşer (sınırsız şube paketi olan restoranlarda düşmez). POS firması için ücret yoktur.</p>
+
+  <footer>
+    Kurye Club · ClubLink Global Teknoloji Dış Ticaret Ltd. Şti. · <a href="https://www.kuryeclub.com">www.kuryeclub.com</a><br>
+    Entegrasyon ve test anahtarı için: [İLETİŞİM E-POSTASI]
+  </footer>
+</main>
+</body>
+</html>
