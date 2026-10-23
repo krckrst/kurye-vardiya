@@ -3,23 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/png" href="favicon-64.png">
+<link rel="apple-touch-icon" href="ikon-180.png">
 <title>Kurye Club · Canlı takip</title>
 <meta name="robots" content="noindex">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root { --mor:#4834D4; --morZ:#EEEBFF; --sari:#F2D21B; --koyu:#1D1B2E; --soluk:#5B6070; --kenar:#E6E4EF; --zemin:#F7F6FB; --yesil:#15803D; --turuncu:#C2410C; }
   * { box-sizing:border-box; margin:0; }
   html, body { height:100%; }
-  body { font-family:-apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:var(--zemin); color:var(--koyu); }
+  body { font-family:Sora, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:var(--zemin); color:var(--koyu); }
   /* Üst çubuk: beyaz, yeni logo */
   header { position:fixed; top:0; left:0; right:0; z-index:1000; background:#fff; border-bottom:1px solid var(--kenar);
            padding:12px 16px; padding-top:max(12px, env(safe-area-inset-top)); }
   .ust { display:flex; align-items:center; gap:10px; max-width:1200px; margin:0 auto; }
-  .logo { font-family:Poppins, -apple-system, sans-serif; font-weight:800; font-size:20px; letter-spacing:-.3px; white-space:nowrap; }
-  .logo span { background:var(--mor); color:#fff; border-radius:6px; padding:0 6px 1px; margin-left:3px; }
+  .logo { font-family:Sora, -apple-system, sans-serif; font-weight:800; font-size:20px; letter-spacing:-.5px; white-space:nowrap; display:flex; align-items:center; gap:8px; }
+  .logo i { font-style:normal; width:30px; height:30px; border-radius:8px; background:var(--mor); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:17px; }
+  .logo { color:#1D4ED8; gap:0 !important; } .logo span { font-weight:400; }
   .firma { margin-left:auto; font-size:13.5px; font-weight:700; color:var(--soluk); max-width:55%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   /* Harita tüm ekran; durum kartı üstünde yüzer (hep görünür) */
   #harita { position:fixed; top:58px; left:0; right:0; bottom:0; }
@@ -56,7 +59,7 @@
 </head>
 <body>
 <header><div class="ust">
-  <div class="logo">kurye<span>club</span></div>
+  <div class="logo"><b style="font-weight:800">kurye</b><span>club</span></div>
   <div class="firma" id="firma"></div>
 </div></header>
 
