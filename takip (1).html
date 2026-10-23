@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/png" href="favicon-64.png">
+<link rel="apple-touch-icon" href="ikon-180.png">
+<title>Kurye Club · Canlı takip</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --mor:#4834D4; --morZ:#EEEBFF; --sari:#F2D21B; --koyu:#1D1B2E; --soluk:#5B6070; --kenar:#E6E4EF; --zemin:#F7F6FB; --yesil:#15803D; --turuncu:#C2410C; }
+  * { box-sizing:border-box; margin:0; }
+  html, body { height:100%; }
+  body { font-family:Sora, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:var(--zemin); color:var(--koyu); }
+  /* Üst çubuk: beyaz, yeni logo */
+  header { position:fixed; top:0; left:0; right:0; z-index:1000; background:#fff; border-bottom:1px solid var(--kenar);
+           padding:12px 16px; padding-top:max(12px, env(safe-area-inset-top)); }
+  .ust { display:flex; align-items:center; gap:10px; max-width:1200px; margin:0 auto; }
+  .logo { font-family:Sora, -apple-system, sans-serif; font-weight:800; font-size:20px; letter-spacing:-.5px; white-space:nowrap; display:flex; align-items:center; gap:8px; }
+  .logo i { font-style:normal; width:30px; height:30px; border-radius:8px; background:var(--mor); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:17px; }
+  .logo { color:#1D4ED8; gap:0 !important; } .logo span { font-weight:400; }
+  .firma { margin-left:auto; font-size:13.5px; font-weight:700; color:var(--soluk); max-width:55%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* Harita tüm ekran; durum kartı üstünde yüzer (hep görünür) */
+  #harita { position:fixed; top:58px; left:0; right:0; bottom:0; }
+  .kart { position:fixed; z-index:900; left:0; right:0; bottom:0; background:#fff; border-radius:24px 24px 0 0;
+          padding:18px 18px calc(18px + env(safe-area-inset-bottom)); box-shadow:0 -8px 30px rgba(29,27,46,.12); }
+  @media (min-width: 900px) {
+    .kart { left:24px; right:auto; bottom:auto; top:82px; width:380px; border-radius:22px; box-shadow:0 12px 40px rgba(29,27,46,.16); }
+  }
+  .durum { display:flex; align-items:center; gap:12px; }
+  .rozet { width:50px; height:50px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:25px; background:var(--morZ); flex:none; }
+  h1 { font-size:20px; font-weight:800; letter-spacing:-.3px; }
+  .alt { font-size:14px; color:var(--soluk); margin-top:3px; line-height:1.4; }
+  .bilgi { display:flex; gap:8px; margin-top:14px; }
+  .bilgi div { flex:1; background:var(--zemin); border-radius:14px; padding:10px 12px; font-size:12px; color:var(--soluk); }
+  .bilgi b { display:block; font-size:15px; color:var(--koyu); margin-top:2px; }
+  .adimlar { display:flex; gap:6px; margin-top:16px; }
+  .adim { flex:1; height:6px; border-radius:4px; background:var(--kenar); }
+  .adim.on { background:var(--mor); }
+  .etiketler { display:flex; justify-content:space-between; font-size:12px; color:var(--soluk); margin-top:6px; }
+  .not { font-size:12px; color:var(--soluk); margin-top:14px; line-height:1.4; }
+  .canli { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--yesil); background:#E8F5EC; padding:4px 10px; border-radius:20px; margin-top:10px; }
+  .canli i { width:8px; height:8px; border-radius:50%; background:var(--yesil); animation:nabiz 1.4s infinite; }
+  .canli.bayat { color:var(--turuncu); background:#FFF1E6; }
+  .canli.bayat i { background:var(--turuncu); animation:none; }
+  .bekle { display:inline-flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; color:var(--mor); background:var(--morZ); padding:6px 12px; border-radius:20px; margin-top:10px; }
+  .bekle i { width:12px; height:12px; border-radius:50%; border:2px solid var(--mor); border-right-color:transparent; animation:don 0.9s linear infinite; }
+  @keyframes nabiz { 0%{opacity:1} 50%{opacity:.25} 100%{opacity:1} }
+  @keyframes don { to { transform:rotate(360deg); } }
+  .kurye-ikon { width:46px; height:46px; border-radius:50%; background:var(--mor); border:3px solid #fff; box-shadow:0 0 0 8px rgba(72,52,212,.18), 0 6px 16px rgba(72,52,212,.45); display:flex; align-items:center; justify-content:center; font-size:22px; }
+  .leaflet-control-attribution { font-size:10px; }
+  @media (max-width: 899px) { .leaflet-bottom { bottom:230px; } }
+  .gizli { display:none !important; }
+</style>
+</head>
+<body>
+<header><div class="ust">
+  <div class="logo"><b style="font-weight:800">kurye</b><span>club</span></div>
+  <div class="firma" id="firma"></div>
+</div></header>
+
+<div id="harita"></div>
+
+<div class="kart">
+  <div class="durum">
+    <div class="rozet" id="rozet">⏳</div>
+    <div>
+      <h1 id="baslik">Yükleniyor…</h1>
+      <div class="alt" id="alt"></div>
+    </div>
+  </div>
+  <div id="canli" class="canli gizli"><i></i><span id="canliYazi">Canlı</span></div>
+  <div id="bekle" class="bekle gizli"><i></i><span>Kuryenin konumu bekleniyor</span></div>
+  <div class="bilgi" id="bilgi">
+    <div>Kurye<b id="kuryeAd">—</b></div>
+    <div id="noKutu">Sipariş no<b id="no">—</b></div>
+  </div>
+  <div class="adimlar"><div class="adim" id="a1"></div><div class="adim" id="a2"></div><div class="adim" id="a3"></div></div>
+  <div class="etiketler"><span>Hazırlanıyor</span><span>Yolda</span><span>Teslim edildi</span></div>
+  <div class="not">Kuryenin konumu yalnızca teslimat süresince gösterilir. Teslimden sonra bu bağlantı konum göstermez.</div>
+</div>
+
+<script>
+// Takip kodu adres çubuğundan gelir: takip.html?t=abc123...
+const ADRES = 'https://europe-west1-kurye-avantaj-platformu-zhwg6b.cloudfunctions.net/takipDurum';
+const kod = (new URLSearchParams(location.search).get('t') || '').trim().toLowerCase();
+const $ = (id) => document.getElementById(id);
+
+const harita = L.map('harita', { zoomControl: false, attributionControl: true }).setView([41.015, 28.979], 11);
+L.control.zoom({ position: 'topright' }).addTo(harita);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19, attribution: '© OpenStreetMap katkıcıları',
+}).addTo(harita);
+
+const ikon = L.divIcon({ className: '', iconSize: [46, 46], iconAnchor: [23, 23], html: '<div class="kurye-ikon">🛵</div>' });
+let isaret = null, ilkOdak = true, sonVeri = null, zamanlayici = null;
+
+function once(ms) {
+  const sn = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (sn < 15) return 'az önce';
+  if (sn < 60) return sn + ' sn önce';
+  const dk = Math.round(sn / 60);
+  if (dk < 60) return dk + ' dk önce';
+  return Math.round(dk / 60) + ' saat önce';
+}
+function saat(ms) {
+  return new Date(ms).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+}
+function adimlar(n) { ['a1', 'a2', 'a3'].forEach((id, i) => $(id).classList.toggle('on', i < n)); }
+
+// İşaretçiyi yeni konuma yumuşak kaydırır
+function kaydir(lat, lng) {
+  if (!isaret) { isaret = L.marker([lat, lng], { icon: ikon }).addTo(harita); return; }
+  const bas = isaret.getLatLng(), t0 = performance.now(), sure = 900;
+  function kare(t) {
+    const k = Math.min(1, (t - t0) / sure), e = k * (2 - k);
+    isaret.setLatLng([bas.lat + (lat - bas.lat) * e, bas.lng + (lng - bas.lng) * e]);
+    if (k < 1) requestAnimationFrame(kare);
+  }
+  requestAnimationFrame(kare);
+}
+
+function goster(v) {
+  sonVeri = v;
+  $('firma').textContent = v.firma || '';
+  const tur = v.tur === 'gonderi' ? 'Paketin' : 'Siparişin';
+  $('canli').classList.add('gizli');
+  $('bekle').classList.add('gizli');
+  $('kuryeAd').textContent = v.kurye || '—';
+  $('no').textContent = v.no ? '#' + v.no : '—';
+  $('noKutu').firstChild.textContent = v.tur === 'gonderi' ? 'Gönderi no' : 'Sipariş no';
+  if (v.hata) {
+    $('rozet').textContent = '🔗';
+    $('baslik').textContent = 'Takip bağlantısı geçersiz';
+    $('alt').textContent = 'Bağlantının süresi dolmuş olabilir. Gönderen işletmeyle iletişime geç.';
+    $('bilgi').classList.add('gizli');
+    adimlar(0);
+    return;
+  }
+  $('bilgi').classList.remove('gizli');
+  if (v.durum === 'teslim') {
+    $('rozet').textContent = '✅';
+    $('baslik').textContent = tur + ' teslim edildi';
+    $('alt').textContent = v.teslimZaman ? 'Teslim saati: ' + saat(v.teslimZaman) : 'Afiyet olsun!';
+    adimlar(3);
+  } else if (v.durum === 'iptal' || v.durum === 'edilemedi') {
+    $('rozet').textContent = '⚠️';
+    $('baslik').textContent = v.durum === 'iptal' ? tur + ' iptal edildi' : 'Teslimat yapılamadı';
+    $('alt').textContent = 'Ayrıntı için ' + (v.firma || 'işletme') + ' ile iletişime geç.';
+    adimlar(0);
+  } else if (v.durum === 'hazirlaniyor') {
+    $('rozet').textContent = '📦';
+    $('baslik').textContent = tur + ' hazırlanıyor';
+    $('alt').textContent = 'Kurye yola çıkınca konumu burada görünecek.';
+    adimlar(1);
+  } else {
+    $('rozet').textContent = '🛵';
+    $('baslik').textContent = tur + ' yolda';
+    adimlar(2);
+    if (typeof v.lat === 'number') {
+      kaydir(v.lat, v.lng);
+      if (ilkOdak) { harita.setView([v.lat, v.lng], 16); ilkOdak = false; }
+      const bayat = v.zaman && Date.now() - v.zaman > 3 * 60 * 1000;
+      $('alt').textContent = (v.kurye || 'Kurye') + ' · son konum ' + (v.zaman ? once(v.zaman) : '');
+      $('canli').classList.remove('gizli');
+      $('canli').classList.toggle('bayat', !!bayat);
+      $('canliYazi').textContent = bayat ? 'Konum bir süredir güncellenmedi' : 'Canlı';
+    } else {
+      $('alt').textContent = (v.kurye || 'Kurye') + ' yola çıktı.';
+      $('bekle').classList.remove('gizli');
+    }
+  }
+  // Teslimat bittiyse işaretçiyi kaldır, konum gösterme
+  if (v.durum !== 'yolda' && isaret) { harita.removeLayer(isaret); isaret = null; }
+}
+
+async function sor() {
+  if (!kod) { goster({ hata: 'gecersiz' }); return; }
+  try {
+    const r = await fetch(ADRES + '?t=' + encodeURIComponent(kod), { cache: 'no-store' });
+    const v = await r.json();
+    goster(v);
+    // Bitmiş işlerde sorgulamayı durdur
+    if (v.hata || ['teslim', 'iptal', 'edilemedi'].includes(v.durum)) { clearInterval(zamanlayici); return; }
+  } catch (e) {
+    $('alt').textContent = 'Bağlantı kurulamadı, tekrar deneniyor…';
+  }
+}
+sor();
+zamanlayici = setInterval(sor, 10000);
+// "son konum 20 sn önce" yazısı her 5 saniyede tazelensin
+setInterval(() => { if (sonVeri && sonVeri.durum === 'yolda' && sonVeri.zaman) goster(sonVeri); }, 5000);
+</script>
+</body>
+</html>
